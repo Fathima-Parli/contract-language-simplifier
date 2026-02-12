@@ -3,8 +3,8 @@ AI-powered tool to simplify complex legal documents
 
 ## 🚀 Milestone 1 - User Registration System
 
-**Completed by:** [Your Name]  
-**Date:** February 13, 2026
+**Completed by:** Monika S 
+**Date:** February 12, 2026
 
 ---
 
