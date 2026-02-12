@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Contract Language Simplifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 15px;
+        }
+
+        .user-info {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="max-width: 800px;">
+        <div class="registration-box">
+            <div class="dashboard-header">
+                <div class="header" style="margin-bottom: 0; text-align: left;">
+                    <h1>Contract Language Simplifier</h1>
+                </div>
+                <div class="user-info">
+                    Hi, {{ name }} 👋
+                </div>
+            </div>
+
+            <div class="content">
+                <p>Welcome to your dashboard. Here you can start simplifying contract language.</p>
+                <!-- Add more dashboard content here -->
+                <div style="margin-top: 50px; text-align: center; color: #666;">
+                    <p>Dashboard features coming soon...</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <a href="/logout" class="btn-submit"
+                    style="display: inline-block; text-align: center; text-decoration: none; width: auto; padding: 10px 30px;">Logout</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
