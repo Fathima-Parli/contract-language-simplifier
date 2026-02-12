@@ -66,5 +66,51 @@ def health_check():
         "database": db_status
     })
 
+
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    """Handle user login"""
+    if not user_model:
+        return jsonify({
+            "success": False,
+            "message": "Database connection error"
+        }), 500
+
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+
+        # Find user by email
+        user = user_model.get_user_by_email(email)
+        if not user:
+            return jsonify({"success": False, "message": "Email not registered"}), 404
+
+        # Verify password
+        if user_model.verify_password(password, user['password']):
+            session['user_id'] = str(user['_id'])
+            session['user_name'] = user['name']
+            return jsonify({"success": True, "message": "Login successful"}), 200
+        else:
+            return jsonify({"success": False, "message": "Incorrect password"}), 401
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Server error: {str(e)}"
+        }),500
+@app.route('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect('/')
+    return f"Welcome {session['user_name']}!"
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
