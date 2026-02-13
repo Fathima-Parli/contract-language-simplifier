@@ -82,3 +82,57 @@ class User:
             return self.collection.find_one({"_id": ObjectId(user_id)})
         except:
             return None
+
+class Document:
+    def __init__(self, db):
+        self.collection = db['documents']
+        # Create index on user_id for faster queries
+        self.collection.create_index("user_id")
+    
+    def create_document(self, user_id, title, content, doc_type='text', original_filename=None):
+        """Create a new document entry"""
+        try:
+            doc = {
+                "user_id": ObjectId(user_id),
+                "title": title,
+                "content": content,
+                "type": doc_type,  # 'text' or 'file'
+                "original_filename": original_filename,
+                "simplified_content": None,
+                "created_at": datetime.utcnow(),
+                "status": "original"  # original, simplified
+            }
+            
+            result = self.collection.insert_one(doc)
+            
+            return {
+                "success": True,
+                "message": "Document saved successfully",
+                "document_id": str(result.inserted_id)
+            }
+        except Exception as e:
+            return {"success": False, "message": f"Error saving document: {str(e)}"}
+    
+    def get_user_documents(self, user_id):
+        """Get all documents for a specific user"""
+        try:
+            documents = list(self.collection.find({"user_id": ObjectId(user_id)}).sort("created_at", -1))
+            # Convert ObjectId to string for JSON serialization if needed later
+            for doc in documents:
+                doc['_id'] = str(doc['_id'])
+                doc['user_id'] = str(doc['user_id'])
+            return documents
+        except Exception as e:
+            print(f"Error fetching documents: {e}")
+            return []
+
+    def get_document_by_id(self, doc_id):
+        """Get a specific document by ID"""
+        try:
+            doc = self.collection.find_one({"_id": ObjectId(doc_id)})
+            if doc:
+                doc['_id'] = str(doc['_id'])
+                doc['user_id'] = str(doc['user_id'])
+            return doc
+        except:
+            return None

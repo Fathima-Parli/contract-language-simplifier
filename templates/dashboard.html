@@ -25,30 +25,154 @@
 </head>
 
 <body>
-    <div class="container" style="max-width: 800px;">
-        <div class="registration-box">
-            <div class="dashboard-header">
-                <div class="header" style="margin-bottom: 0; text-align: left;">
-                    <h1>Contract Language Simplifier</h1>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="logo">
+                <h1>Contract Language Simplifier</h1>
+            </div>
+            <div class="user-controls">
+                <span class="user-greeting">Hi, {{ name }} 👋</span>
+                <a href="/logout" class="btn-logout">Logout</a>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="welcome-banner">
+                <p>Welcome to your dashboard. Start simplifying contract language today.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📄</div>
+                    <div class="stat-details">
+                        <h3>Total Documents</h3>
+                        <p>{{ documents|length }}</p>
+                    </div>
                 </div>
-                <div class="user-info">
-                    Hi, {{ name }} 👋
+                <div class="stat-card">
+                    <div class="stat-icon">✨</div>
+                    <div class="stat-details">
+                        <h3>Simplified</h3>
+                        <p>0</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="content">
-                <p>Welcome to your dashboard. Here you can start simplifying contract language.</p>
-                <!-- Add more dashboard content here -->
-                <div style="margin-top: 50px; text-align: center; color: #666;">
-                    <p>Dashboard features coming soon...</p>
+            <div class="upload-section">
+                <h2>Upload New Document</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('file')">File Upload</button>
+                    <button class="tab-btn" onclick="switchTab('text')">Paste Text</button>
+                </div>
+
+                <div id="file-tab" class="tab-content active">
+                    <form id="file-upload-form" onsubmit="handleUpload(event, 'file')">
+                        <div class="form-group">
+                            <label>Document Title</label>
+                            <input type="text" name="title" required placeholder="e.g. Terms of Service">
+                        </div>
+                        <div class="form-group">
+                            <label>Select File (TXT)</label>
+                            <input type="file" name="file" accept=".txt" required>
+                        </div>
+                        <input type="hidden" name="type" value="file">
+                        <button type="submit" class="btn-submit">Upload & Simplify</button>
+                        <div class="message-box" style="display:none"></div>
+                    </form>
+                </div>
+
+                <div id="text-tab" class="tab-content">
+                    <form id="text-upload-form" onsubmit="handleUpload(event, 'text')">
+                        <div class="form-group">
+                            <label>Document Title</label>
+                            <input type="text" name="title" required placeholder="e.g. Privacy Policy">
+                        </div>
+                        <div class="form-group">
+                            <label>Paste Text Content</label>
+                            <textarea name="content" rows="10" required
+                                style="width: 100%; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-family: inherit; resize: vertical;"
+                                placeholder="Paste your legal document content here..."></textarea>
+                        </div>
+                        <input type="hidden" name="type" value="text">
+                        <button type="submit" class="btn-submit">Simplify Text</button>
+                        <div class="message-box" style="display:none"></div>
+                    </form>
                 </div>
             </div>
 
-            <div style="margin-top: 30px;">
-                <a href="/logout" class="btn-submit"
-                    style="display: inline-block; text-align: center; text-decoration: none; width: auto; padding: 10px 30px;">Logout</a>
+            <div class="documents-list">
+                <h2>Your Documents</h2>
+                {% if documents %}
+                <div class="doc-grid">
+                    {% for doc in documents %}
+                    <a href="/document/{{ doc._id }}" class="doc-card">
+                        <div class="doc-icon">📄</div>
+                        <div class="doc-info">
+                            <h4>{{ doc.title }}</h4>
+                            <span class="doc-meta">{{ doc.created_at.strftime('%Y-%m-%d') }} • {{ doc.type|title
+                                }}</span>
+                        </div>
+                        <div class="doc-status {{ doc.status }}">{{ doc.status|title }}</div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="no-docs">
+                    <p>No documents uploaded yet.</p>
+                </div>
+                {% endif %}
             </div>
+
+            <script>
+                function switchTab(tab) {
+                    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+                    document.getElementById(tab + '-tab').classList.add('active');
+                    event.target.classList.add('active');
+                }
+
+                async function handleUpload(e, type) {
+                    e.preventDefault();
+                    const form = e.target;
+                    const formData = new FormData(form);
+                    const btn = form.querySelector('button[type="submit"]');
+                    const msgBox = form.querySelector('.message-box');
+
+                    btn.disabled = true;
+                    btn.textContent = 'Processing...';
+                    msgBox.style.display = 'none';
+
+                    try {
+                        const response = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await response.json();
+
+                        if (data.success) {
+                            msgBox.className = 'message-box success';
+                            msgBox.textContent = data.message;
+                            msgBox.style.display = 'block';
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            msgBox.className = 'message-box error';
+                            msgBox.textContent = data.message;
+                            msgBox.style.display = 'block';
+                            btn.disabled = false;
+                            btn.textContent = type === 'file' ? 'Upload & Simplify' : 'Simplify Text';
+                        }
+                    } catch (err) {
+                        msgBox.className = 'message-box error';
+                        msgBox.textContent = 'Something went wrong';
+                        msgBox.style.display = 'block';
+                        btn.disabled = false;
+                        btn.textContent = type === 'file' ? 'Upload & Simplify' : 'Simplify Text';
+                    }
+                }
+            </script>
         </div>
+    </div>
     </div>
 </body>
 

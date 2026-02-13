@@ -1,9 +1,11 @@
+# ... imports ...
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from config.database import db_instance
-from models import User
+from models import User, Document  # Modified import
 import os
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
 
 # Load environment variables
 load_dotenv()
@@ -11,18 +13,34 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
+# Configure Uploads
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max limit
+ALLOWED_EXTENSIONS = {'txt'} # restricting to txt for now as per requirements "plain text content"
+
+# Ensure upload directory exists
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # Enable CORS
 CORS(app)
 
 # Connect to MongoDB
 db = db_instance.connect()
 
-# Initialize User model
+# Initialize Models
 user_model = User(db) if db is not None else None
+document_model = Document(db) if db is not None else None
 
 @app.route('/')
 def index():
     """Render the registration page"""
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
     return render_template('register.html')
 
 @app.route('/api/register', methods=['POST'])
@@ -47,7 +65,11 @@ def register():
         result = user_model.create_user(name, email, phone, password)
         
         if result['success']:
-            return jsonify(result), 201
+            # Redirect to login instead of auto-login
+            return jsonify({
+                "success": True,
+                "message": "Registration successful! Please login."
+            }), 201
         else:
             return jsonify(result), 400
     
@@ -123,8 +145,93 @@ def dashboard():
     """Render the dashboard page"""
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
+    # Fetch user documents
+    documents = []
+    if document_model:
+        documents = document_model.get_user_documents(session['user_id'])
+
+    return render_template('dashboard.html', name=session.get('name'), documents=documents)
+
+@app.route('/api/upload', methods=['POST'])
+def upload_document():
+    """Handle document upload or text input"""
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    if not document_model:
+        return jsonify({"success": False, "message": "Database error"}), 500
+
+    try:
+        user_id = session['user_id']
+        title = request.form.get('title', 'Untitled Document')
+        doc_type = request.form.get('type', 'text') # text or file
         
-    return render_template('dashboard.html', name=session.get('name'))
+        content = ""
+        original_filename = None
+        
+        if doc_type == 'file':
+            if 'file' not in request.files:
+                return jsonify({"success": False, "message": "No file part"}), 400
+            
+            file = request.files['file']
+            
+            if file.filename == '':
+                return jsonify({"success": False, "message": "No selected file"}), 400
+            
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                original_filename = filename
+                
+                # Save file
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{user_id}_{filename}")
+                file.save(filepath)
+                
+                # Read content for simplification (assuming txt for now)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+            else:
+                 return jsonify({"success": False, "message": "Invalid file type. Only .txt allowed."}), 400
+
+        else: # text input
+             content = request.form.get('content', '')
+             if not content.strip():
+                 return jsonify({"success": False, "message": "Content cannot be empty"}), 400
+
+        # Save to DB
+        result = document_model.create_document(user_id, title, content, doc_type, original_filename)
+        
+        if result['success']:
+             return jsonify({
+                "success": True, 
+                "message": "Document uploaded successfully",
+                "document_id": result['document_id']
+            }), 201
+        else:
+             return jsonify(result), 400
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
+
+@app.route('/document/<doc_id>')
+def view_document(doc_id):
+    """View a specific document"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if not document_model:
+        return "Database error", 500
+
+    doc = document_model.get_document_by_id(doc_id)
+    
+    if not doc:
+        return "Document not found", 404
+        
+    # Ensure user owns the document
+    if str(doc['user_id']) != session['user_id']:
+        return "Unauthorized", 403
+        
+    return render_template('view_document.html', doc=doc)
 
 @app.route('/logout')
 def logout():
@@ -133,5 +240,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, port=8000)
