@@ -5,18 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Contract Language Simplifier</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 
-<body>
-    <div class="container">
-        <div class="registration-box">
-            <div class="header">
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
                 <h1>Contract Language Simplifier</h1>
                 <p>Login to your account</p>
             </div>
 
-            <form id="loginForm">
+            <form id="loginForm" class="auth-form">
                 <div class="form-group">
                     <label for="email">Email Address</label>
                     <input type="email" id="email" name="email" placeholder="your.email@example.com" required>
@@ -29,7 +29,7 @@
                     <span class="error-message" id="password-error"></span>
                 </div>
 
-                <button type="submit" class="btn-submit" id="submitBtn">
+                <button type="submit" class="btn-submit auth-submit-btn" id="submitBtn">
                     <span class="btn-text">Login</span>
                     <span class="btn-loader" style="display: none;">Processing...</span>
                 </button>
@@ -37,7 +37,7 @@
 
             <div class="message-box" id="messageBox" style="display: none;"></div>
 
-            <div class="footer">
+            <div class="auth-footer">
                 <p>Don't have an account? <a href="/">Register here</a></p>
             </div>
         </div>

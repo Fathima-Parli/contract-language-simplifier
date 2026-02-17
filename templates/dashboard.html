@@ -94,8 +94,49 @@
                                 placeholder="Paste your legal document content here..."></textarea>
                         </div>
                         <input type="hidden" name="type" value="text">
-                        <button type="submit" class="btn-submit">Simplify Text</button>
+                        <div class="form-actions" style="display: flex; gap: 10px; align-items: center;">
+                            <button type="button" class="btn-secondary" onclick="analyzeText()">Check
+                                Readability</button>
+                            <button type="submit" class="btn-submit">Simplify Text</button>
+                        </div>
                         <div class="message-box" style="display:none"></div>
+                        <div id="readability-results"
+                            style="display:none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                            <h4>Readability Scores</h4>
+                            <div class="score-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <strong>Flesch-Kincaid:</strong> <span id="score-fk"></span>
+                                </div>
+                                <div>
+                                    <strong>Gunning Fog:</strong> <span id="score-gf"></span>
+                                </div>
+                                <div style="grid-column: 1 / -1;">
+                                    <strong>Complexity:</strong> <span id="score-complexity"></span>
+                                </div>
+                            </div>
+
+                            <div class="complexity-heatmap-container" style="margin-top: 25px;">
+                                <h5>Word Complexity Heatmap</h5>
+                                <div class="legend">
+                                    <div class="legend-item">
+                                        <div class="legend-color"
+                                            style="background: #fee2e2; border: 1px solid #fca5a5;"></div>
+                                        <span>Complex (3+ syllables)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color"
+                                            style="background: #fef3c7; border: 1px solid #fcd34d;"></div>
+                                        <span>Medium (>7 chars)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color"
+                                            style="background: #d1fae5; border: 1px solid #6ee7b7;"></div>
+                                        <span>Simple</span>
+                                    </div>
+                                </div>
+                                <div id="complexity-heatmap" class="complexity-heatmap"></div>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -168,6 +209,55 @@
                         msgBox.style.display = 'block';
                         btn.disabled = false;
                         btn.textContent = type === 'file' ? 'Upload & Simplify' : 'Simplify Text';
+                    }
+                }
+
+                async function analyzeText() {
+                    const textarea = document.querySelector('textarea[name="content"]');
+                    const text = textarea.value;
+                    const resultsDiv = document.getElementById('readability-results');
+
+                    if (!text.trim()) {
+                        alert("Please enter some text to analyze.");
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/analyze', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ text: text })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            document.getElementById('score-fk').textContent = data.readability.flesch_kincaid_grade;
+                            document.getElementById('score-gf').textContent = data.readability.gunning_fog;
+                            document.getElementById('score-complexity').textContent = data.readability.complexity_level;
+
+                            // Render Heatmap
+                            const heatmapContainer = document.getElementById('complexity-heatmap');
+                            heatmapContainer.innerHTML = '';
+
+                            if (data.complexity_map) {
+                                data.complexity_map.forEach(item => {
+                                    const span = document.createElement('span');
+                                    span.textContent = item.text;
+                                    span.className = `highlight complexity-${item.complexity}`;
+                                    // Add tooltip likely? For now just visual.
+                                    heatmapContainer.appendChild(span);
+                                });
+                            }
+
+                            resultsDiv.style.display = 'block';
+                        } else {
+                            alert("Analysis failed: " + data.message);
+                        }
+                    } catch (err) {
+                        alert("Error analyzing text: " + err.message);
                     }
                 }
             </script>

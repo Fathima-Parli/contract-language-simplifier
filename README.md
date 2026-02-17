@@ -1,9 +1,9 @@
 # Contract Language Simplifier
 AI-powered tool to simplify complex legal documents into plain English.
 
-## 🚀 Milestone Completed - Dashboard & Document Management
+## 🚀 Milestone 2 Completed - NLP Pipeline & Readability Analysis
 
-**Date:** February 14, 2026
+**Date:** February 17, 2026
 
 ---
 
@@ -12,6 +12,8 @@ AI-powered tool to simplify complex legal documents into plain English.
 **Backend:**
 - Python 3.12+
 - Flask 3.0.0
+- **NLP:** NLTK, SpaCy
+- **Readability:** Textstat
 - PyMongo 4.6.1
 - bcrypt 4.1.2
 - Flask-CORS 4.0.0
@@ -22,29 +24,31 @@ AI-powered tool to simplify complex legal documents into plain English.
 **Frontend:**
 - HTML5, CSS3, JavaScript
 - Modern UI with 'Inter' font stack
-- Responsive Design
+- **Visualization:** Word Complexity Heatmap
 
 ---
 
 ## ✨ Features
 
-### 1. User Authentication
+### 1. NLP & Readability Analysis (Milestone 2)
+✅ **Text Preprocessing**: Robust cleaning, sentence segmentation (SpaCy), and tokenization (NLTK).
+✅ **Readability Scoring**:
+    - **Flesch-Kincaid Grade Level**: Assesses educational level required to understand the text.
+    - **Gunning Fog Index**: Estimates years of formal education needed.
+✅ **Word Complexity Heatmap**: Visualizes difficulty levels directly on the text.
+    - 🔴 **Complex**: 3+ syllables
+    - 🟡 **Medium**: Long words (>7 chars)
+    - 🟢 **Simple**: Standard vocabulary
+
+### 2. User Authentication
 ✅ **Registration**: Secure sign-up with email, name, and phone validation.
 ✅ **Login**: Secure login with bcrypt password hashing.
 ✅ **Logout**: Secure session clearing.
-✅ **Security**: Input validation and session management.
 
-### 2. User Dashboard
-✅ **Overview**: View total documents and simplified count.
-✅ **Upload Interface**: 
-    - Upload `.txt` files.
-    - Paste text directly.
-✅ **Document List**: Card-based view of all uploaded documents with status indicators.
-
-### 3. Document Management
-✅ **View Document**: Clickable cards to view full original content.
-✅ **Status Tracking**: Track if a document is 'Original' or 'Simplified'.
-✅ **Storage**: Documents stored in MongoDB linked to the user.
+### 3. User Dashboard
+✅ **Analysis Interface**: Paste legal text to instantly check readability scores.
+✅ **Document Management**: Upload, view, and manage legal documents.
+✅ **Professional UI**: Glassmorphism design with a clean "White & Blue" theme.
 
 ---
 
@@ -55,20 +59,15 @@ contract-language-simplifier/
 ├── models.py              # Database Models (User, Document)
 ├── requirements.txt       # Dependencies
 ├── .env                   # Configuration (Not in Repo)
-├── config/
-│   └── database.py       # MongoDB connection
-├── templates/
-│   ├── register.html     # Registration page
-│   ├── login.html        # Login page
-│   ├── dashboard.html    # User Dashboard
-│   └── view_document.html# Document View page
-└── static/
-    ├── css/
-    │   └── style.css     # Professional Styling
-    ├── js/
-    │   ├── register.js   # Auth Validation
-    │   └── login.js      # Login Logic
-    └── uploads/          # Temporary file storage
+├── nlp/
+│   ├── preprocessing.py   # Text cleaning & tokenization
+│   └── readability.py     # Score calculation & complexity analysis
+├── static/
+│   ├── css/
+│   │   ├── style.css      # Dashboard Styling
+│   │   └── auth.css       # Login/Register Styling
+│   └── js/                # Frontend Logic
+└── templates/             # HTML Templates
 ```
 
 ---
@@ -87,16 +86,17 @@ cd contract-language-simplifier
 
 ### Step 2: Create Virtual Environment
 ```bash
-python -m venv venv
+python -m venv .venv
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 # Mac/Linux
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 ### Step 3: Install Dependencies
 ```bash
 pip install -r requirements.txt
+python -m spacy download en_core_web_sm
 ```
 
 ### Step 4: Configure Environment
@@ -116,17 +116,7 @@ Access the app at `http://localhost:8000`
 
 ## 📋 API Endpoints
 
+- `POST /api/analyze`: Analyze text for readability and complexity
 - `POST /api/register`: Register new user
 - `POST /api/login`: Authenticate user
-- `POST /api/upload`: Upload document or text
-- `GET /dashboard`: User dashboard
-- `GET /document/<id>`: View specific document
-
----
-
-## 🤝 Contribution
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/NewFeature`)
-3. Commit changes (`git commit -m 'Add NewFeature'`)
-4. Push to branch (`git push origin feature/NewFeature`)
-5. Open a Pull Request
+- `POST /api/upload`: Upload document

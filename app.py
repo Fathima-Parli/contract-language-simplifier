@@ -6,6 +6,8 @@ from models import User, Document  # Modified import
 import os
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
+from nlp.preprocessing import preprocess_pipeline
+from nlp.readability import calculate_readability
 
 # Load environment variables
 load_dotenv()
@@ -212,6 +214,37 @@ def upload_document():
 
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
+
+@app.route('/api/analyze', methods=['POST'])
+def analyze_text():
+    """Analyze text for readability"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        
+        if not text:
+            return jsonify({"success": False, "message": "No text provided"}), 400
+            
+        # Preprocess
+        preprocessed = preprocess_pipeline(text)
+        
+        # Calculate readability
+        readability = calculate_readability(text)
+        
+        # Word complexity (imported dynamically to avoid circular issues if any, though likely fine)
+        from nlp.readability import analyze_word_complexity
+        complexity_map = analyze_word_complexity(text)
+        
+        return jsonify({
+            "success": True,
+            "stats": preprocessed,
+            "readability": readability,
+            "complexity_map": complexity_map
+        })
+        
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Analysis error: {str(e)}"}), 500
+
 
 @app.route('/document/<doc_id>')
 def view_document(doc_id):
