@@ -1,4 +1,6 @@
-# ... imports ...
+# ... imports 
+print("APP STARTED")
+
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from config.database import db_instance
