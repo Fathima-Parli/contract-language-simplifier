@@ -99,6 +99,7 @@ class Document:
                 "type": doc_type,  # 'text' or 'file'
                 "original_filename": original_filename,
                 "simplified_content": None,
+                "summary": None,
                 "created_at": datetime.utcnow(),
                 "status": "original"  # original, simplified
             }
@@ -136,3 +137,32 @@ class Document:
             return doc
         except:
             return None
+
+    def update_document_simplified(self, doc_id, simplified_content):
+        """Update document with simplified content"""
+        try:
+            result = self.collection.update_one(
+                {"_id": ObjectId(doc_id)},
+                {"$set": {
+                    "simplified_content": simplified_content,
+                    "status": "simplified"
+                }}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error updating simplified content: {e}")
+            return False
+
+    def update_document_summary(self, doc_id, summary_content):
+        """Update document with summary"""
+        try:
+            result = self.collection.update_one(
+                {"_id": ObjectId(doc_id)},
+                {"$set": {
+                    "summary": summary_content
+                }}
+            )
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error updating summary: {e}")
+            return False

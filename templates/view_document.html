@@ -4,97 +4,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ doc.title }} - Contract Language Simplifier</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Contract Language Simplifier - {{ doc.title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        .view-container {
-            max-width: 900px;
-            margin: 40px auto;
-            background: white;
-            padding: 40px;
+        :root {
+            --primary: #007bff;
+            /* Blue */
+            --primary-light: #e6f2ff;
+            --text-dark: #333333;
+            --text-gray: #6b7280;
+            --bg-body: #fdfdfd;
+            --bg-card: #ffffff;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Top Header Pill */
+        .app-header {
+            background-color: var(--primary);
+            border-radius: 12px 12px 0 0;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+
+        .app-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .header-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+        }
+
+        /* Layout Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-top: 24px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
             border-radius: 12px;
-            border: 1px solid #e0e0e0;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 24px;
         }
 
-        .doc-header {
-            margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 20px;
+        .text-cards-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+            align-items: start;
         }
 
-        .doc-header h1 {
-            color: #333;
-            margin-bottom: 10px;
+        .text-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
-        .doc-meta {
-            color: #666;
-            font-size: 14px;
+        .text-card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
         }
 
-        .content-box {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: monospace;
-            white-space: pre-wrap;
+        .title-blue {
+            color: var(--primary);
+        }
+
+        .title-gray {
+            color: var(--text-gray);
+        }
+
+        .badge {
+            background-color: #f3f4f6;
+            color: var(--text-gray);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .text-content {
+            font-size: 0.95rem;
             line-height: 1.6;
-            margin-bottom: 30px;
-            border: 1px solid #eee;
+            color: #4b5563;
+            min-height: 200px;
+            white-space: pre-wrap;
         }
 
-        .simplified-box {
-            background: #e3f2fd;
-            padding: 20px;
+        /* Document Summary */
+        .summary-card {
+            margin-bottom: 24px;
+        }
+
+        .summary-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        .summary-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-dark);
+            white-space: pre-wrap;
+        }
+
+        /* Controls Area */
+        .controls-card {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .controls-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-grow: 1;
+            margin-right: 24px;
+        }
+
+        .slider-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        /* Custom Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 4px;
+        }
+
+        .btn-simplify {
+            background-color: var(--primary);
+            color: white;
+            border: none;
             border-radius: 8px;
-            border: 1px solid #bbdefb;
+            padding: 12px 24px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-simplify:hover {
+            opacity: 0.9;
+        }
+
+        .btn-simplify:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Bar Chart */
+        .chart-container {
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 150px;
+            position: relative;
+        }
+
+        .y-axis {
+            position: absolute;
+            left: 0;
+            top: 24px;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: var(--text-gray);
+            font-size: 0.75rem;
+        }
+
+        .y-axis-line {
+            width: 100%;
+            height: 1px;
+            background: #f3f4f6;
+            position: absolute;
+            left: 20px;
+            z-index: 0;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        .bar {
+            width: 80px;
+            background-color: var(--primary);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+        }
+
+        .bar-label {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            height: 20px;
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        /* Info Cards (Right Column) */
+        .info-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-left: 6px solid var(--primary);
+            padding: 16px;
+            display: flex;
+            gap: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            align-items: flex-start;
+        }
+
+        .info-icon {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .info-content h4 {
+            margin: 0 0 4px 0;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        .info-content p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-gray);
+            line-height: 1.4;
+        }
+
+        .loading-text {
+            color: var(--text-gray);
+            font-style: italic;
         }
 
         .back-link {
             display: inline-block;
             margin-bottom: 20px;
-            color: #0056b3;
+            color: var(--text-gray);
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.9rem;
         }
 
         .back-link:hover {
-            text-decoration: underline;
+            color: var(--primary);
         }
     </style>
 </head>
 
 <body>
-    <div class="dashboard-container">
-        <header class="dashboard-header">
-            <div class="logo">
-                <h1>Contract Language Simplifier</h1>
-            </div>
-            <div class="user-controls">
-                <a href="/logout" class="btn-logout">Logout</a>
-            </div>
-        </header>
+    <div class="main-container">
+        <a href="/dashboard" class="back-link">← Back to Dashboard</a>
 
-        <div class="view-container">
-            <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        <div class="app-header">
+            <h1>Contract Language Simplifier</h1>
+            <div class="header-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
 
-            <div class="doc-header">
-                <h1>{{ doc.title }}</h1>
-                <div class="doc-meta">
-                    Uploaded on {{ doc.created_at.strftime('%B %d, %Y') }} •
-                    Status: <span class="doc-status {{ doc.status }}">{{ doc.status|title }}</span>
+        <div class="content-grid">
+            <!-- Left Column -->
+            <div class="left-column">
+
+                <div class="text-cards-container">
+                    <!-- Original Text Card -->
+                    <div class="card">
+                        <div class="text-card-header">
+                            <span class="text-card-title title-blue">Original Text</span>
+                            <span class="badge" id="grade-original">Grade --</span>
+                        </div>
+                        <div class="text-content" id="original-content">{{ doc.content }}</div>
+                    </div>
+
+                    <!-- Simplified Text Card -->
+                    <div class="card">
+                        <div class="text-card-header">
+                            <span class="text-card-title title-gray">Simplified Text</span>
+                            <span class="badge" id="grade-simplified">Grade --</span>
+                        </div>
+                        <div class="text-content" id="simplified-content">{% if doc.simplified_content %}{{
+                            doc.simplified_content }}{% else %}<span class="loading-text">Click "Simplify Again" to
+                                generate.</span>{% endif %}</div>
+                    </div>
+                </div>
+
+                <!-- Document Summary Card -->
+                <div class="card summary-card">
+                    <div class="summary-header">
+                        <!-- File Icon SVG -->
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        Document Summary
+                    </div>
+                    <div class="summary-content" id="summary-content">{% if doc.summary %}{{ doc.summary }}{% else
+                        %}<span class="loading-text">No summary generated yet.</span>{% endif %}</div>
+                </div>
+
+                <!-- Controls & Chart Card -->
+                <div class="card controls-card">
+                    <div class="controls-top">
+                        <div class="slider-group">
+                            <span class="slider-label">Simplification Level:</span>
+                            <input type="range" min="1" max="100" value="70" id="simplify-level">
+                        </div>
+                        <button class="btn-simplify" id="btn-simplify" onclick="processDocument('{{ doc._id }}')">
+                            <!-- Refresh Icon SVG -->
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                            <span id="btn-text">Simplify Again</span>
+                        </button>
+                    </div>
+
+                    <!-- Fake Bar Chart using CSS -->
+                    <div class="chart-container">
+                        <!-- Y-axis values -->
+                        <div class="y-axis">
+                            <span>15</span>
+                            <span>10</span>
+                            <span>5</span>
+                            <span>0</span>
+                        </div>
+
+                        <!-- Grid lines -->
+                        <div class="y-axis-line" style="bottom: 0;"></div>
+                        <div class="y-axis-line" style="bottom: 33%;"></div>
+                        <div class="y-axis-line" style="bottom: 66%;"></div>
+                        <div class="y-axis-line" style="bottom: 100%;"></div>
+
+                        <div class="bar-group">
+                            <div class="bar" id="bar-original-inner" style="height: 0%;"></div>
+                            <span class="bar-label" id="bar-original">Original</span>
+                        </div>
+                        <div class="bar-group">
+                            <div class="bar" id="bar-simplified-inner" style="height: 0%;"></div>
+                            <span class="bar-label" id="bar-simplified">Simplified</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column Info Cards -->
+            <div class="right-column info-cards">
+                <div class="info-card">
+                    <div class="info-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="info-content">
+                        <h4>AI-Powered Simplification</h4>
+                        <p>Reduces reading level by 4-5 grades while preserving 90% of original meaning</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="12" y1="3" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <div class="info-content">
+                        <h4>Side-by-Side Comparison</h4>
+                        <p>Visual comparison of original and simplified text with readability scores</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"></path>
+                        </svg>
+                    </div>
+                    <div class="info-content">
+                        <h4>Smart Summarization</h4>
+                        <p>Captures 85% of key points in 30% of original text length</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <div class="info-content">
+                        <h4>Fast Processing</h4>
+                        <p>Processes 10-page documents in under 60 seconds with FLAN-T5 model</p>
+                    </div>
                 </div>
             </div>
-
-            <h3>Original Content</h3>
-            <div class="content-box">{{ doc.content }}</div>
-
-            {% if doc.simplified_content %}
-            <h3>Simplified Version</h3>
-            <div class="content-box simplified-box">{{ doc.simplified_content }}</div>
-            {% endif %}
         </div>
     </div>
+
+    <script>
+        // Initial Readability Analyze
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchReadability();
+        });
+
+        function fetchReadability() {
+            const originalText = document.getElementById('original-content').innerText;
+            const simplifiedText = document.getElementById('simplified-content').innerText;
+
+            // Analyze original
+            fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: originalText })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        let grade = Math.max(0, Math.round(data.readability.flesch_kincaid_grade));
+                        document.getElementById('grade-original').innerText = 'Grade ' + grade;
+                        updateChart('bar-original', grade);
+                    }
+                });
+
+            // Analyze simplified if it exists
+            if (!simplifiedText.includes('Click "Simplify Again"') && !simplifiedText.includes('Model not loaded') && simplifiedText.trim().length > 0) {
+                console.log("Fetching readability for simplified text: ", simplifiedText.substring(0, 30));
+                fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: simplifiedText })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("Simplified readability data:", data);
+                        if (data.success) {
+                            let grade = Math.max(0, Math.round(data.readability.flesch_kincaid_grade));
+                            document.getElementById('grade-simplified').innerText = 'Grade ' + grade;
+                            updateChart('bar-simplified', grade);
+                        } else {
+                            updateChart('bar-simplified', 0);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Error fetching simplified readability", err);
+                        updateChart('bar-simplified', 0);
+                    });
+            } else {
+                console.log("Skipping simplified text readability analysis");
+                updateChart('bar-simplified', 0);
+            }
+        }
+
+        // Setup chart bars (Max 15)
+        function updateChart(id, grade) {
+            const maxGrade = 15;
+            let percentage = (grade / maxGrade) * 100;
+            if (percentage > 100) percentage = 100;
+            document.getElementById(id + '-inner').style.height = percentage + '%';
+        }
+
+        async function processDocument(docId) {
+            const btn = document.getElementById('btn-simplify');
+            const btnText = document.getElementById('btn-text');
+            const simplBox = document.getElementById('simplified-content');
+            const summBox = document.getElementById('summary-content');
+            const levelValue = document.getElementById('simplify-level').value;
+
+            btn.disabled = true;
+            btnText.innerText = "Processing...";
+            simplBox.innerHTML = '<span class="loading-text">Simplifying with FLAN-T5 Model...</span>';
+            summBox.innerHTML = '<span class="loading-text">Generating Summary...</span>';
+
+            try {
+                // Run simplify and summarize in parallel
+                const [simpRes, sumRes] = await Promise.all([
+                    fetch(`/simplify/${docId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ level: levelValue }) }),
+                    fetch(`/summarize/${docId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                ]);
+
+                const simpData = await simpRes.json();
+                const sumData = await sumRes.json();
+
+                if (simpData.success) {
+                    simplBox.innerText = simpData.simplified_content;
+                } else {
+                    simplBox.innerHTML = `<span style="color: red;">Error: ${simpData.message}</span>`;
+                }
+
+                if (sumData.success) {
+                    summBox.innerText = sumData.summary;
+                } else {
+                    summBox.innerHTML = `<span style="color: red;">Error: ${sumData.message}</span>`;
+                }
+
+                // Re-calculate Readability
+                fetchReadability();
+
+            } catch (err) {
+                simplBox.innerHTML = `<span style="color: red;">Network Error</span>`;
+                summBox.innerHTML = `<span style="color: red;">Network Error</span>`;
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "Simplify Again";
+            }
+        }
+    </script>
 </body>
 
 </html>

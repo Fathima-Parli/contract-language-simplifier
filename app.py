@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from nlp.preprocessing import preprocess_pipeline
 from nlp.readability import calculate_readability
+from nlp.model import simplify_text, summarize_text
 
 # Load environment variables
 load_dotenv()
@@ -86,7 +87,7 @@ def register():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    db_status = "connected" if db else "disconnected"
+    db_status = "connected" if db is not None else "disconnected"
     return jsonify({
         "status": "running",
         "database": db_status
@@ -267,6 +268,55 @@ def view_document(doc_id):
         return "Unauthorized", 403
         
     return render_template('view_document.html', doc=doc)
+
+@app.route('/simplify/<doc_id>', methods=['POST'])
+def simplify_document(doc_id):
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    if not document_model:
+        return jsonify({"success": False, "message": "Database error"}), 500
+
+    doc = document_model.get_document_by_id(doc_id)
+    if not doc or str(doc['user_id']) != session['user_id']:
+        return jsonify({"success": False, "message": "Document not found or unauthorized"}), 404
+        
+    try:
+        data = request.get_json(silent=True) or {}
+        level = int(data.get('level', 70))
+        
+        content = doc.get("content", "")
+        simplified = simplify_text(content, level)
+        
+        # Save to DB
+        document_model.update_document_simplified(doc_id, simplified)
+        
+        return jsonify({"success": True, "simplified_content": simplified})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
+
+@app.route('/summarize/<doc_id>', methods=['POST'])
+def summarize_document(doc_id):
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Unauthorized"}), 401
+    
+    if not document_model:
+        return jsonify({"success": False, "message": "Database error"}), 500
+
+    doc = document_model.get_document_by_id(doc_id)
+    if not doc or str(doc['user_id']) != session['user_id']:
+        return jsonify({"success": False, "message": "Document not found or unauthorized"}), 404
+        
+    try:
+        content = doc.get("content", "")
+        summary = summarize_text(content)
+        
+        # Save to DB
+        document_model.update_document_summary(doc_id, summary)
+        
+        return jsonify({"success": True, "summary": summary})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route('/logout')
 def logout():
