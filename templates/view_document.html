@@ -410,7 +410,6 @@
                             <input type="range" min="1" max="100" value="70" id="simplify-level">
                         </div>
                         <button class="btn-simplify" id="btn-simplify" onclick="processDocument('{{ doc._id }}')">
-                            <!-- Refresh Icon SVG -->
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="23 4 23 10 17 10"></polyline>
@@ -421,9 +420,32 @@
                         </button>
                     </div>
 
-                    <!-- Fake Bar Chart using CSS -->
+                    <!-- NEW: Metrics Display Section -->
+                    <div class="metrics-section" id="metrics-display" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+                        <h4 style="color: var(--primary); margin-bottom: 16px; font-size: 1rem;">📊 Processing Metrics</h4>
+                        
+                        <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+                            <div class="metric-item" style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 0.75rem; color: var(--text-gray); margin-bottom: 4px;">Processing Time</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" id="metric-time">--</div>
+                            </div>
+                            <div class="metric-item" style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 0.75rem; color: var(--text-gray); margin-bottom: 4px;">Grade Reduction</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: #10b981;" id="metric-reduction">--</div>
+                            </div>
+                            <div class="metric-item" style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 0.75rem; color: var(--text-gray); margin-bottom: 4px;">Original Words</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-dark);" id="metric-orig-words">--</div>
+                            </div>
+                            <div class="metric-item" style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
+                                <div style="font-size: 0.75rem; color: var(--text-gray); margin-bottom: 4px;">Simplified Words</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-dark);" id="metric-simp-words">--</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bar Chart -->
                     <div class="chart-container">
-                        <!-- Y-axis values -->
                         <div class="y-axis">
                             <span>15</span>
                             <span>10</span>
@@ -431,7 +453,6 @@
                             <span>0</span>
                         </div>
 
-                        <!-- Grid lines -->
                         <div class="y-axis-line" style="bottom: 0;"></div>
                         <div class="y-axis-line" style="bottom: 33%;"></div>
                         <div class="y-axis-line" style="bottom: 66%;"></div>
@@ -574,50 +595,72 @@
         }
 
         async function processDocument(docId) {
-            const btn = document.getElementById('btn-simplify');
-            const btnText = document.getElementById('btn-text');
-            const simplBox = document.getElementById('simplified-content');
-            const summBox = document.getElementById('summary-content');
-            const levelValue = document.getElementById('simplify-level').value;
+        const btn = document.getElementById('btn-simplify');
+        const btnText = document.getElementById('btn-text');
+        const simplBox = document.getElementById('simplified-content');
+        const summBox = document.getElementById('summary-content');
+        const levelValue = document.getElementById('simplify-level').value;
+        const metricsDisplay = document.getElementById('metrics-display');
 
-            btn.disabled = true;
-            btnText.innerText = "Processing...";
-            simplBox.innerHTML = '<span class="loading-text">Simplifying with FLAN-T5 Model...</span>';
-            summBox.innerHTML = '<span class="loading-text">Generating Summary...</span>';
+        btn.disabled = true;
+        btnText.innerText = "Processing...";
+        simplBox.innerHTML = '<span class="loading-text">Simplifying with FLAN-T5 Model...</span>';
+        summBox.innerHTML = '<span class="loading-text">Generating Summary...</span>';
+        
+        // Hide metrics during processing
+        metricsDisplay.style.display = 'none';
 
-            try {
-                // Run simplify and summarize in parallel
-                const [simpRes, sumRes] = await Promise.all([
-                    fetch(`/simplify/${docId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ level: levelValue }) }),
-                    fetch(`/summarize/${docId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                ]);
+        try {
+            // Run simplify and summarize in parallel
+            const [simpRes, sumRes] = await Promise.all([
+                fetch(`/simplify/${docId}`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ level: levelValue }) 
+                }),
+                fetch(`/summarize/${docId}`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' } 
+                })
+            ]);
 
-                const simpData = await simpRes.json();
-                const sumData = await sumRes.json();
+            const simpData = await simpRes.json();
+            const sumData = await sumRes.json();
 
-                if (simpData.success) {
-                    simplBox.innerText = simpData.simplified_content;
-                } else {
-                    simplBox.innerHTML = `<span style="color: red;">Error: ${simpData.message}</span>`;
+            if (simpData.success) {
+                simplBox.innerText = simpData.simplified_content;
+                
+                // Display metrics
+                if (simpData.metrics) {
+                    document.getElementById('metric-time').innerText = simpData.metrics.processing_time + 's';
+                    document.getElementById('metric-reduction').innerText = '-' + simpData.metrics.reduction + ' grades';
+                    document.getElementById('metric-orig-words').innerText = simpData.metrics.original_words;
+                    document.getElementById('metric-simp-words').innerText = simpData.metrics.simplified_words;
+                    
+                    metricsDisplay.style.display = 'block';
                 }
-
-                if (sumData.success) {
-                    summBox.innerText = sumData.summary;
-                } else {
-                    summBox.innerHTML = `<span style="color: red;">Error: ${sumData.message}</span>`;
-                }
-
-                // Re-calculate Readability
-                fetchReadability();
-
-            } catch (err) {
-                simplBox.innerHTML = `<span style="color: red;">Network Error</span>`;
-                summBox.innerHTML = `<span style="color: red;">Network Error</span>`;
-            } finally {
-                btn.disabled = false;
-                btnText.innerText = "Simplify Again";
+            } else {
+                simplBox.innerHTML = `<span style="color: red;">Error: ${simpData.message}</span>`;
             }
+
+            if (sumData.success) {
+                summBox.innerText = sumData.summary;
+            } else {
+                summBox.innerHTML = `<span style="color: red;">Error: ${sumData.message}</span>`;
+            }
+
+            // Re-calculate Readability
+            fetchReadability();
+
+        } catch (err) {
+            simplBox.innerHTML = `<span style="color: red;">Network Error</span>`;
+            summBox.innerHTML = `<span style="color: red;">Network Error</span>`;
+        } finally {
+            btn.disabled = false;
+            btnText.innerText = "Simplify Again";
         }
+    }
+
     </script>
 </body>
 

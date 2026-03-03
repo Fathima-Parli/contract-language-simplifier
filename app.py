@@ -6,6 +6,7 @@ from flask_cors import CORS
 from config.database import db_instance
 from models import User, Document  # Modified import
 import os
+import time 
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from nlp.preprocessing import preprocess_pipeline
@@ -286,12 +287,40 @@ def simplify_document(doc_id):
         level = int(data.get('level', 70))
         
         content = doc.get("content", "")
+        
+        # Track processing time
+        start_time = time.time()
         simplified = simplify_text(content, level)
+        processing_time = round(time.time() - start_time, 2)
+        
+        # Calculate readability for both original and simplified
+        original_readability = calculate_readability(content)
+        simplified_readability = calculate_readability(simplified)
+        
+        # Calculate metrics
+        original_grade = round(original_readability['flesch_kincaid_grade'], 1)
+        simplified_grade = round(simplified_readability['flesch_kincaid_grade'], 1)
+        grade_reduction = round(original_grade - simplified_grade, 1)
+        
+        original_words = len(content.split())
+        simplified_words = len(simplified.split())
         
         # Save to DB
         document_model.update_document_simplified(doc_id, simplified)
         
-        return jsonify({"success": True, "simplified_content": simplified})
+        # Return with metrics
+        return jsonify({
+            "success": True, 
+            "simplified_content": simplified,
+            "metrics": {
+                "processing_time": processing_time,
+                "original_grade": original_grade,
+                "simplified_grade": simplified_grade,
+                "reduction": grade_reduction,
+                "original_words": original_words,
+                "simplified_words": simplified_words
+            }
+        })
     except Exception as e:
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
