@@ -19,11 +19,12 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
-# Configure Uploads
+# Configure Uploads - Updated for Task 6
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max limit
-ALLOWED_EXTENSIONS = {'txt'} # restricting to txt for now as per requirements "plain text content"
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max limit (increased for large docs)
+ALLOWED_EXTENSIONS = {'txt'}
+MAX_DOCUMENT_LENGTH = 100000  # Maximum characters per document (approx 10 pages)
 
 # Ensure upload directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -288,14 +289,44 @@ def simplify_document(doc_id):
         
         content = doc.get("content", "")
         
+        # Task 6: Check document size
+        if len(content) > MAX_DOCUMENT_LENGTH:
+            return jsonify({
+                "success": False, 
+                "message": f"Document too large. Maximum {MAX_DOCUMENT_LENGTH} characters allowed."
+            }), 400
+        
+        # Task 6: Check if content is empty
+        if not content.strip():
+            return jsonify({
+                "success": False,
+                "message": "Document content is empty"
+            }), 400
+        
         # Track processing time
         start_time = time.time()
-        simplified = simplify_text(content, level)
+        
+        # Task 6: Simplify with chunking support for large docs
+        try:
+            simplified = simplify_text(content, level)
+        except Exception as e:
+            print(f"Error during simplification: {e}")
+            return jsonify({
+                "success": False,
+                "message": f"Simplification failed: {str(e)}"
+            }), 500
+        
         processing_time = round(time.time() - start_time, 2)
         
         # Calculate readability for both original and simplified
-        original_readability = calculate_readability(content)
-        simplified_readability = calculate_readability(simplified)
+        try:
+            original_readability = calculate_readability(content)
+            simplified_readability = calculate_readability(simplified)
+        except Exception as e:
+            print(f"Error calculating readability: {e}")
+            # Use default values if readability calculation fails
+            original_readability = {'flesch_kincaid_grade': 0}
+            simplified_readability = {'flesch_kincaid_grade': 0}
         
         # Calculate metrics
         original_grade = round(original_readability['flesch_kincaid_grade'], 1)
@@ -322,6 +353,9 @@ def simplify_document(doc_id):
             }
         })
     except Exception as e:
+        print(f"Unexpected error in simplify_document: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
 
 @app.route('/summarize/<doc_id>', methods=['POST'])

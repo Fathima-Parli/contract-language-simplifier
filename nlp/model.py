@@ -1,4 +1,6 @@
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import nltk
+from nltk.tokenize import sent_tokenize
 
 _model_name = "google/flan-t5-base"
 print(f"Loading FLAN-T5 model ({_model_name}) directly from weights...")
@@ -13,7 +15,7 @@ except Exception as e:
     model = None
 
 def simplify_text(text: str, level: int = 70) -> str:
-    """Simplifies the given text using FLAN-T5. 
+    """Simplifies the given text using FLAN-T5 with chunking for large documents.
     Level (1-100) controls how brief the output is.
     Higher level = Simpler/Shorter length. Lower level = Closer to original length.
     """
@@ -22,6 +24,26 @@ def simplify_text(text: str, level: int = 70) -> str:
     if not text.strip():
         return ""
     
+    # Import chunking module
+    from nlp.chunking import is_large_document, process_large_document
+    
+    # Check if document is large (> 500 tokens)
+    if is_large_document(text, threshold_tokens=500):
+        print(f"Large document detected. Processing in chunks...")
+        
+        # Process large document in chunks
+        def simplify_chunk(chunk):
+            return _simplify_single_chunk(chunk, level)
+        
+        # Use chunking with max 400 tokens per chunk
+        simplified = process_large_document(text, simplify_chunk, max_tokens=400)
+        return simplified
+    else:
+        # Process normally for small documents
+        return _simplify_single_chunk(text, level)
+
+def _simplify_single_chunk(text: str, level: int = 70) -> str:
+    """Internal function to simplify a single chunk of text."""
     # Scale between 40 (shortest) and 350 (longest limit)
     mapped_max_tokens = int(max(40, 350 - (level * 2)))
 
@@ -42,9 +64,6 @@ def simplify_text(text: str, level: int = 70) -> str:
     )
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-import nltk
-from nltk.tokenize import sent_tokenize
-
 def _extractive_summary(text: str, num_sentences: int = 3) -> str:
     """Fallback extractive summarizer picking the most important sentences."""
     sentences = sent_tokenize(text)
@@ -56,7 +75,7 @@ def _extractive_summary(text: str, num_sentences: int = 3) -> str:
     return " ".join([sentences[i] for i in sorted(list(set(idx)))])
 
 def summarize_text(text: str) -> str:
-    """Summarizes the given text using FLAN-T5 with an extractive fallback."""
+    """Summarizes the given text using FLAN-T5 with chunking for large documents."""
     if not text.strip():
         return ""
         
@@ -68,6 +87,33 @@ def summarize_text(text: str) -> str:
     if not model or not tokenizer:
         return _extractive_summary(text)
     
+    # Import chunking
+    from nlp.chunking import is_large_document, chunk_text
+    
+    # For large documents, summarize in chunks then combine
+    if is_large_document(text, threshold_tokens=600):
+        print(f"Large document detected for summarization. Processing in chunks...")
+        chunks = chunk_text(text, max_tokens=500)
+        
+        # Summarize each chunk
+        chunk_summaries = []
+        for chunk in chunks:
+            summary = _summarize_single_chunk(chunk)
+            if summary:
+                chunk_summaries.append(summary)
+        
+        # Combine chunk summaries
+        combined = ' '.join(chunk_summaries)
+        
+        # If combined is still long, summarize again
+        if len(combined.split()) > 200:
+            return _summarize_single_chunk(combined)
+        return combined
+    else:
+        return _summarize_single_chunk(text)
+
+def _summarize_single_chunk(text: str) -> str:
+    """Internal function to summarize a single chunk."""
     # Use FLAN-T5 for abstractive summarization
     prompt = f"Write a detailed summary of the following text: {text}"
     inputs = tokenizer(prompt, return_tensors="pt", max_length=1024, truncation=True)
