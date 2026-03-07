@@ -641,4 +641,4 @@ def admin_update_glossary(term_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    app.run(debug=True, port=7860)
