@@ -7,7 +7,7 @@ colorTo: green
 sdk: docker
 pinned: false
 license: mit
-short_description: AI tool that simplifies complex legal contract language using NLP
+short_description: AI tool that simplifies legal contract language
 ---
 
 # Contract Language Simplifier
