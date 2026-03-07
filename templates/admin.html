@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Contract Language Simplifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007bff;
+            --primary-light: #e6f2ff;
+            --sidebar-bg: #0d1b2e;
+            --sidebar-text: #93aabf;
+            --sidebar-active: #007bff;
+            --text-dark: #1f2937;
+            --text-gray: #6b7280;
+            --bg-body: #f5f7fb;
+            --bg-card: #fff;
+            --border: #e5e7eb;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-body);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            min-height: 100vh;
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .sidebar-brand h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.3;
+        }
+
+        .sidebar-brand span {
+            font-size: 0.72rem;
+            color: var(--sidebar-text);
+            font-weight: 400;
+        }
+
+        .sidebar-nav {
+            padding: 16px 0;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all 0.15s;
+            color: var(--sidebar-text);
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+
+        .nav-item.active {
+            background: rgba(79, 70, 229, 0.15);
+            color: #fff;
+            border-left-color: var(--sidebar-active);
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 0.8rem;
+        }
+
+        .sidebar-footer a {
+            color: var(--sidebar-text);
+            text-decoration: none;
+        }
+
+        .sidebar-footer a:hover {
+            color: #fff;
+        }
+
+        /* ── Main Content ── */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .topbar {
+            background: var(--bg-card);
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .topbar h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .admin-badge {
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .content-area {
+            padding: 28px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* ── Tabs ── */
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* ── Stat Cards ── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--text-gray);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .stat-sub {
+            font-size: 0.75rem;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        .stat-card.blue .stat-value {
+            color: var(--primary);
+        }
+
+        .stat-card.green .stat-value {
+            color: var(--green);
+        }
+
+        .stat-card.amber .stat-value {
+            color: var(--amber);
+        }
+
+        .stat-card.red .stat-value {
+            color: var(--red);
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Mode breakdown ── */
+        .mode-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .mode-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mode-label {
+            width: 100px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .mode-bar-track {
+            flex: 1;
+            height: 10px;
+            background: #f3f4f6;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .mode-bar-fill {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.6s ease;
+        }
+
+        .mode-count {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+            width: 40px;
+            text-align: right;
+        }
+
+        /* ── Activity chart ── */
+        .activity-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 120px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+            margin-top: 12px;
+        }
+
+        .activity-bar-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .activity-bar {
+            width: 100%;
+            background: var(--primary-light);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+            min-height: 2px;
+        }
+
+        .activity-bar:hover {
+            background: var(--primary);
+        }
+
+        .activity-label {
+            font-size: 0.65rem;
+            color: var(--text-gray);
+        }
+
+        /* ── Tables ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-gray);
+            padding: 10px 12px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            font-size: 0.82rem;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background: #f9fafb;
+        }
+
+        .badge-mode {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 9px;
+            border-radius: 12px;
+        }
+
+        .badge-basic {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-intermediate {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .badge-advanced {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-simplified {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-original {
+            background: #f3f4f6;
+            color: var(--text-gray);
+        }
+
+        /* ── Document Review ── */
+        .doc-review-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .doc-text-area {
+            font-family: inherit;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            width: 100%;
+            min-height: 200px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            resize: vertical;
+            color: var(--text-dark);
+        }
+
+        .doc-text-area:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .docs-table-row {
+            cursor: pointer;
+        }
+
+        .docs-table-row.selected td {
+            background: var(--primary-light) !important;
+        }
+
+        /* ── Glossary ── */
+        .glossary-form {
+            display: grid;
+            grid-template-columns: 1fr 2fr auto;
+            gap: 12px;
+            align-items: start;
+            margin-bottom: 20px;
+        }
+
+        .form-input {
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: opacity 0.15s;
+        }
+
+        .btn:hover {
+            opacity: 0.85;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-success {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: var(--red);
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 0.78rem;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: var(--text-dark);
+        }
+
+        /* ── Pagination ── */
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .page-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            background: #fff;
+            font-size: 0.82rem;
+        }
+
+        .page-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        .page-info {
+            font-size: 0.8rem;
+            color: var(--text-gray);
+        }
+
+        .loading-info {
+            color: var(--text-gray);
+            font-style: italic;
+            font-size: 0.85rem;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h2>⚖️ CLS Admin</h2>
+            <span>Contract Language Simplifier</span>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" onclick="switchTab('overview')" id="nav-overview">
+                <span>📊</span> Overview
+            </div>
+            <div class="nav-item" onclick="switchTab('requests')" id="nav-requests">
+                <span>📋</span> Requests
+            </div>
+            <div class="nav-item" onclick="switchTab('review')" id="nav-review">
+                <span>📝</span> Document Review
+            </div>
+            <div class="nav-item" onclick="switchTab('glossary')" id="nav-glossary">
+                <span>📚</span> Glossary Management
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            👤 Logged in as <strong>{{ name }}</strong><br>
+            <a href="/dashboard">← User Dashboard</a> &nbsp;|&nbsp;
+            <a href="/logout">Logout</a>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+        <div class="topbar">
+            <h1 id="topbar-title">📊 Overview</h1>
+            <span class="admin-badge">🔐 Admin</span>
+        </div>
+
+        <div class="content-area">
+
+            <!-- ── Overview Tab ── -->
+            <div class="tab-pane active" id="tab-overview">
+                <div class="stat-grid" id="stat-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-label">Total Requests</div>
+                        <div class="stat-value" id="s-total">—</div>
+                    </div>
+                    <div class="stat-card green">
+                        <div class="stat-label">Avg. Processing Time</div>
+                        <div class="stat-value" id="s-time">—</div>
+                        <div class="stat-sub">seconds</div>
+                    </div>
+                    <div class="stat-card amber">
+                        <div class="stat-label">Avg. Grade Reduction</div>
+                        <div class="stat-value" id="s-reduction">—</div>
+                        <div class="stat-sub">reading grades</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Documents</div>
+                        <div class="stat-value" id="s-docs">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Users</div>
+                        <div class="stat-value" id="s-users">—</div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+                    <!-- Mode Breakdown -->
+                    <div class="card">
+                        <div class="card-title">🎛️ Requests by Simplification Mode</div>
+                        <div class="mode-bars" id="mode-breakdown">
+                            <div class="loading-info">Loading…</div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Activity -->
+                    <div class="card">
+                        <div class="card-title">📈 Daily Activity (Last 7 Days)</div>
+                        <div class="activity-chart" id="activity-chart">
+                            <div class="loading-info">Loading…</div>
+                        </div>
+                        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;" id="activity-labels"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Requests Tab ── -->
+            <div class="tab-pane" id="tab-requests">
+                <div class="card">
+                    <div class="card-title">📋 Simplification Request Log</div>
+                    <div style="overflow-x:auto;">
+                        <table id="requests-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Document</th>
+                                    <th>Mode</th>
+                                    <th>Level</th>
+                                    <th>Orig. Grade</th>
+                                    <th>Simp. Grade</th>
+                                    <th>Reduction</th>
+                                    <th>Time (s)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="requests-tbody">
+                                <tr>
+                                    <td colspan="8" class="loading-info">Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="req-pagination"></div>
+                </div>
+            </div>
+
+            <!-- ── Document Review Tab ── -->
+            <div class="tab-pane" id="tab-review">
+                <div class="card">
+                    <div class="card-title">📝 All Documents</div>
+                    <div style="overflow-x:auto; margin-bottom:20px;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Admin Corrected</th>
+                                </tr>
+                            </thead>
+                            <tbody id="docs-tbody">
+                                <tr>
+                                    <td colspan="5" class="loading-info">Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="docs-pagination"></div>
+                </div>
+
+                <!-- Correction Panel -->
+                <div class="card" id="correction-panel" style="display:none;">
+                    <div class="card-title">✏️ Review &amp; Correct: <span id="correction-doc-title">—</span></div>
+                    <div class="doc-review-layout">
+                        <div>
+                            <p style="font-size:0.8rem; font-weight:600; color:var(--text-gray); margin-bottom:6px;">
+                                ORIGINAL TEXT</p>
+                            <textarea class="doc-text-area" id="review-original" readonly></textarea>
+                        </div>
+                        <div>
+                            <p style="font-size:0.8rem; font-weight:600; color:var(--text-gray); margin-bottom:6px;">
+                                SIMPLIFIED TEXT (editable)</p>
+                            <textarea class="doc-text-area" id="review-simplified"
+                                placeholder="No simplified text yet. Click Simplify on the document first."></textarea>
+                            <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+                                <button class="btn btn-success" onclick="saveCorrection()">💾 Save Correction</button>
+                                <button class="btn btn-secondary"
+                                    onclick="document.getElementById('correction-panel').style.display='none'">Cancel</button>
+                                <span id="correction-msg"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Glossary Management Tab ── -->
+            <div class="tab-pane" id="tab-glossary">
+                <div class="card">
+                    <div class="card-title">➕ Add Custom Legal Term</div>
+                    <div class="glossary-form">
+                        <div>
+                            <label
+                                style="font-size:0.78rem; color:var(--text-gray); display:block; margin-bottom:4px;">Term</label>
+                            <input class="form-input" id="new-term" type="text" placeholder="e.g. force majeure">
+                        </div>
+                        <div>
+                            <label
+                                style="font-size:0.78rem; color:var(--text-gray); display:block; margin-bottom:4px;">Plain-English
+                                Definition</label>
+                            <input class="form-input" id="new-def" type="text"
+                                placeholder="e.g. Unexpected events outside anyone's control…">
+                        </div>
+                        <div style="align-self:flex-end;">
+                            <button class="btn btn-primary" onclick="addGlossaryTerm()">➕ Add Term</button>
+                        </div>
+                    </div>
+                    <div id="glossary-add-msg"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📚 Custom Glossary Terms</div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Term</th>
+                                    <th>Definition</th>
+                                    <th>Added</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="glossary-tbody">
+                                <tr>
+                                    <td colspan="4" class="loading-info">Loading…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /content-area -->
+    </main>
+
+    <script>
+        // ── State ──
+        let currentDocId = null;
+        let reqPage = 1, docsPage = 1;
+
+        // ── Tab Switching ──
+        const tabTitles = {
+            overview: '📊 Overview',
+            requests: '📋 Simplification Requests',
+            review: '📝 Document Review',
+            glossary: '📚 Glossary Management'
+        };
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('nav-' + tab).classList.add('active');
+            document.getElementById('topbar-title').textContent = tabTitles[tab] || tab;
+
+            if (tab === 'overview') loadStats();
+            if (tab === 'requests') loadRequests();
+            if (tab === 'review') loadDocs();
+            if (tab === 'glossary') loadGlossary();
+        }
+
+        // ── Overview ──
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/admin/stats');
+                const data = await res.json();
+                if (!data.success) return;
+                const s = data.stats;
+
+                document.getElementById('s-total').textContent = s.total_requests ?? 0;
+                document.getElementById('s-time').textContent = (s.avg_processing_time ?? 0) + 's';
+                document.getElementById('s-reduction').textContent = s.avg_grade_reduction ?? 0;
+                document.getElementById('s-docs').textContent = s.total_documents ?? 0;
+                document.getElementById('s-users').textContent = s.total_users ?? 0;
+
+                renderModeBreakdown(s.requests_by_mode || {}, s.total_requests || 1);
+                renderActivityChart(s.recent_activity || []);
+            } catch (e) { console.error('Stats error', e); }
+        }
+
+        function renderModeBreakdown(byMode, total) {
+            const container = document.getElementById('mode-breakdown');
+            container.innerHTML = '';
+            const modes = [
+                { key: 'basic', label: '📘 Basic', color: '#10b981' },
+                { key: 'intermediate', label: '📗 Intermediate', color: '#4f46e5' },
+                { key: 'advanced', label: '📕 Advanced', color: '#ef4444' }
+            ];
+            modes.forEach(m => {
+                const count = byMode[m.key] || 0;
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                const row = document.createElement('div');
+                row.className = 'mode-row';
+                row.innerHTML = `
+                    <span class="mode-label">${m.label}</span>
+                    <div class="mode-bar-track">
+                        <div class="mode-bar-fill" style="width:${pct}%; background:${m.color};"></div>
+                    </div>
+                    <span class="mode-count">${count}</span>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderActivityChart(activity) {
+            const chart = document.getElementById('activity-chart');
+            const labels = document.getElementById('activity-labels');
+            chart.innerHTML = '';
+            labels.innerHTML = '';
+            if (!activity.length) {
+                chart.innerHTML = '<span class="loading-info" style="margin:auto;">No activity yet</span>';
+                return;
+            }
+            const maxCount = Math.max(...activity.map(d => d.count), 1);
+            activity.forEach(d => {
+                const pct = Math.max(4, (d.count / maxCount) * 100);
+                const wrap = document.createElement('div');
+                wrap.className = 'activity-bar-wrap';
+                wrap.title = `${d.date}: ${d.count} request(s), avg ${d.avg_time}s`;
+                wrap.innerHTML = `<div class="activity-bar" style="height:${pct}%;"></div>`;
+                chart.appendChild(wrap);
+
+                const lbl = document.createElement('span');
+                lbl.className = 'activity-label';
+                lbl.textContent = d.date.slice(5); // MM-DD
+                labels.appendChild(lbl);
+            });
+        }
+
+        // ── Requests ──
+        async function loadRequests(page = 1) {
+            reqPage = page;
+            try {
+                const res = await fetch(`/api/admin/requests?page=${page}&per_page=15`);
+                const data = await res.json();
+                if (!data.success) return;
+                const { items, total } = data.logs;
+                const tbody = document.getElementById('requests-tbody');
+                if (!items.length) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="loading-info">No requests yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(log => `
+                    <tr>
+                        <td>${log.created_at}</td>
+                        <td>${escHtml(log.doc_title)}</td>
+                        <td><span class="badge-mode badge-${log.mode}">${log.mode}</span></td>
+                        <td>${log.level}</td>
+                        <td>${log.original_grade}</td>
+                        <td>${log.simplified_grade}</td>
+                        <td>${log.grade_reduction > 0 ? '-' : ''}${log.grade_reduction}</td>
+                        <td>${log.processing_time}</td>
+                    </tr>
+                `).join('');
+                renderPagination('req-pagination', total, 15, page, loadRequests);
+            } catch (e) { console.error('Requests error', e); }
+        }
+
+        // ── Documents ──
+        async function loadDocs(page = 1) {
+            docsPage = page;
+            try {
+                const res = await fetch(`/api/admin/documents?page=${page}&per_page=15`);
+                const data = await res.json();
+                if (!data.success) return;
+                const { items, total } = data.documents;
+                const tbody = document.getElementById('docs-tbody');
+                if (!items.length) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading-info">No documents yet.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(doc => `
+                    <tr class="docs-table-row" onclick="selectDoc('${doc._id}', ${JSON.stringify(escHtml(doc.title))}, ${JSON.stringify(escHtml(doc.content_preview))}, ${JSON.stringify(escHtml(doc.simplified_preview))})">
+                        <td><strong>${escHtml(doc.title)}</strong></td>
+                        <td>${doc.type}</td>
+                        <td><span class="badge-mode badge-${doc.status}">${doc.status}</span></td>
+                        <td>${new Date(doc.created_at).toLocaleDateString()}</td>
+                        <td>${doc.admin_corrected ? '✅ Yes' : '—'}</td>
+                    </tr>
+                `).join('');
+                renderPagination('docs-pagination', total, 15, page, loadDocs);
+            } catch (e) { console.error('Docs error', e); }
+        }
+
+        function selectDoc(docId, title, contentPreview, simplifiedPreview) {
+            currentDocId = docId;
+            // Highlight selected row
+            document.querySelectorAll('.docs-table-row').forEach(r => r.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+
+            document.getElementById('correction-doc-title').textContent = title;
+            document.getElementById('review-original').value = contentPreview;
+            document.getElementById('review-simplified').value = simplifiedPreview || '';
+            document.getElementById('correction-panel').style.display = 'block';
+            document.getElementById('correction-msg').textContent = '';
+            document.getElementById('correction-panel').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function saveCorrection() {
+            if (!currentDocId) return;
+            const corrected = document.getElementById('review-simplified').value.trim();
+            if (!corrected) { alert('Please enter corrected text.'); return; }
+            try {
+                const res = await fetch(`/api/admin/document/${currentDocId}/correct`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ corrected_text: corrected })
+                });
+                const data = await res.json();
+                const msgEl = document.getElementById('correction-msg');
+                msgEl.className = data.success ? 'alert-success' : 'alert-error';
+                msgEl.textContent = data.success ? '✅ Correction saved successfully!' : '❌ ' + data.message;
+            } catch (e) {
+                document.getElementById('correction-msg').textContent = '❌ Network error';
+            }
+        }
+
+        // ── Glossary ──
+        async function loadGlossary() {
+            try {
+                const res = await fetch('/api/admin/glossary');
+                const data = await res.json();
+                const tbody = document.getElementById('glossary-tbody');
+                if (!data.success || !data.terms.length) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="loading-info">No custom terms yet. Add one above.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.terms.map(t => `
+                    <tr>
+                        <td><strong>${escHtml(t.display_term || t.term)}</strong></td>
+                        <td>${escHtml(t.definition)}</td>
+                        <td>${t.created_at || '—'}</td>
+                        <td>
+                            <button class="btn btn-danger" onclick="deleteTerm('${t._id}')">🗑 Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { console.error('Glossary error', e); }
+        }
+
+        async function addGlossaryTerm() {
+            const term = document.getElementById('new-term').value.trim();
+            const def = document.getElementById('new-def').value.trim();
+            const msgEl = document.getElementById('glossary-add-msg');
+            if (!term || !def) { msgEl.innerHTML = '<div class="alert-error">Both term and definition are required.</div>'; return; }
+
+            try {
+                const res = await fetch('/api/admin/glossary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ term, definition: def })
+                });
+                const data = await res.json();
+                msgEl.innerHTML = data.success
+                    ? '<div class="alert-success">✅ Term added successfully!</div>'
+                    : `<div class="alert-error">❌ ${data.message}</div>`;
+                if (data.success) {
+                    document.getElementById('new-term').value = '';
+                    document.getElementById('new-def').value = '';
+                    loadGlossary();
+                }
+            } catch (e) { msgEl.innerHTML = '<div class="alert-error">❌ Network error</div>'; }
+        }
+
+        async function deleteTerm(termId) {
+            if (!confirm('Delete this term from the custom glossary?')) return;
+            try {
+                const res = await fetch(`/api/admin/glossary/${termId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) loadGlossary();
+                else alert('Error: ' + data.message);
+            } catch (e) { alert('Network error'); }
+        }
+
+        // ── Pagination helper ──
+        function renderPagination(containerId, total, perPage, currentPage, callback) {
+            const totalPages = Math.ceil(total / perPage);
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if (totalPages <= 1) return;
+            for (let p = 1; p <= totalPages; p++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn' + (p === currentPage ? ' active' : '');
+                btn.textContent = p;
+                btn.onclick = () => callback(p);
+                container.appendChild(btn);
+            }
+            const info = document.createElement('span');
+            info.className = 'page-info';
+            info.textContent = `${total} total`;
+            container.appendChild(info);
+        }
+
+        // ── HTML escape ──
+        function escHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // ── Init ──
+        loadStats();
+    </script>
+</body>
+
+</html>

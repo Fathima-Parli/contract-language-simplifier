@@ -1,91 +1,119 @@
 # Contract Language Simplifier
-AI-powered tool to simplify complex legal documents into plain English.
 
-## 🚀 Milestone 3 Completed - AI Model Text Simplification & Summarization
+> **AI-powered tool that transforms complex legal documents into plain, easy-to-understand English.**
 
-**Date:** February 28, 2026
+---
+
+## 🚀 Milestone 4 Completed — Multi-level Simplification, Key Term Highlighting & Admin Dashboard
+
+**Date:** March 7, 2026
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Backend:**
-- Python 3.12+
-- Flask 3.0.0
-- **AI & NLP:** HuggingFace Transformers (FLAN-T5), PyTorch, NLTK, SpaCy
-- **Readability:** Textstat
-- PyMongo 4.6.1
-- bcrypt 4.1.2
-- Flask-CORS 4.0.0
-
-**Database:**
-- MongoDB (Local/Atlas)
-
-**Frontend:**
-- HTML5, CSS3, JavaScript
-- Modern UI with 'Inter' font stack
-- **Visualization:** Word Complexity Heatmap
+| Layer | Technology |
+|---|---|
+| **Backend** | Python 3.12+, Flask 3.0.0, Flask-CORS 4.0.0, Flask-Session 0.6.0 |
+| **AI / NLP** | HuggingFace Transformers (FLAN-T5), PyTorch, SpaCy, NLTK |
+| **Readability** | Textstat (Flesch-Kincaid, Gunning Fog) |
+| **Database** | MongoDB (Local / Atlas) via PyMongo 4.6.1 |
+| **Auth** | bcrypt 4.1.2, Flask Sessions |
+| **Frontend** | HTML5, CSS3, Vanilla JavaScript, Inter font |
 
 ---
 
-## ✨ Features
+## ✨ Features — All Milestones
 
-### 1. NLP & Readability Analysis (Milestone 2)
-✅ **Text Preprocessing**: Robust cleaning, sentence segmentation (SpaCy), and tokenization (NLTK).
-✅ **Readability Scoring**:
-    - **Flesch-Kincaid Grade Level**: Assesses educational level required to understand the text.
-    - **Gunning Fog Index**: Estimates years of formal education needed.
-✅ **Word Complexity Heatmap**: Visualizes difficulty levels directly on the text.
-    - 🔴 **Complex**: 3+ syllables
-    - 🟡 **Medium**: Long words (>7 chars)
-    - 🟢 **Simple**: Standard vocabulary
+### 🔵 Milestone 1 — User Authentication
+- ✅ **Registration** — Secure signup with name, email, phone & password validation
+- ✅ **Login / Logout** — bcrypt password hashing, secure session management
+- ✅ **Dashboard** — View and manage all uploaded documents
 
-### 2. AI Model Integration (Milestone 3)
-✅ **FLAN-T5 Simplification**: Direct model generation scaling dynamically utilizing PyTorch & Transformers.
-✅ **Adjustable Simplification Level**: User-interactive slider (1-100) dynamically mapped to token outputs and model prompts directly in the API.
-✅ **Hybrid Summarization**: Model seamlessly generates document summaries, automatically falling back to an NLTK Extractive logic pipeline if text is too sparse.
-✅ **Dynamic Graphing**: Live Javascript interactive graphs demonstrating readability drops in Grade Level.
+---
 
-### 3. User Authentication
-✅ **Registration**: Secure sign-up with email, name, and phone validation.
-✅ **Login**: Secure login with bcrypt password hashing.
-✅ **Logout**: Secure session clearing.
+### 🔵 Milestone 2 — NLP & Readability Analysis
+- ✅ **Text Preprocessing** — Cleaning, sentence segmentation (SpaCy), tokenization (NLTK)
+- ✅ **Readability Scores** — Flesch-Kincaid Grade Level & Gunning Fog Index
+- ✅ **Word Complexity Heatmap** — Visual difficulty map directly on the text:
+  - 🔴 Complex (3+ syllables)
+  - 🟡 Medium (7+ chars)
+  - 🟢 Simple vocabulary
 
-### 4. User Dashboard
-✅ **Analysis Interface**: Paste legal text to instantly check readability scores.
-✅ **Document Management**: Upload, view, and manage legal documents.
-✅ **Professional UI**: Glassmorphism design with a clean "White & Blue" theme.
+---
+
+### 🔵 Milestone 3 — AI Model Integration (FLAN-T5)
+- ✅ **Text Simplification** — FLAN-T5 model rewrites legal text in plain English
+- ✅ **Adjustable Level** — Interactive slider (1–100) dynamically maps to model prompt intensity
+- ✅ **Hybrid Summarization** — AI summary with NLTK extractive fallback
+- ✅ **Readability Bar Chart** — Live JS bar chart showing grade drop after simplification
+- ✅ **Document Upload** — Supports `.txt` file uploads up to 50 MB
+
+---
+
+### 🟢 Milestone 4 — NEW: Advanced Features
+
+#### 1. Multi-level Simplification Mode
+- ✅ **Three distinct modes** selectable via large card buttons:
+  - 📘 **Basic** — Minimal changes, preserves legal structure
+  - 📗 **Intermediate** — Balanced (default) — replaces jargon with everyday language
+  - 📕 **Advanced** — Maximum simplification, suitable for anyone
+- ✅ The selected mode is sent to the backend API (`simplification_mode` field)
+- ✅ A **mode badge** appears on the simplified text card after processing
+- ✅ Processing metrics displayed: time, grade reduction, original/simplified word count
+
+#### 2. Key Term Highlighting & Legal Glossary
+- ✅ **80+ legal terms** detected automatically in uploaded documents
+- ✅ Detected terms are **highlighted in amber** in the Original Text pane
+- ✅ **Hover tooltips** show plain-English definitions instantly
+- ✅ **Searchable Legal Terms Glossary** panel — collapsible, with live search filter
+- ✅ Custom glossary terms (added by admin) are merged into results
+- ✅ API endpoint: `POST /api/highlight_terms`
+
+#### 3. Admin Dashboard (`/admin`)
+- ✅ **Sidebar navigation** with 4 tabs:
+  | Tab | What it shows |
+  |---|---|
+  | 📊 Overview | Stat cards (total requests, avg time, avg grade reduction, docs, users) + mode breakdown bar chart + 7-day daily activity chart |
+  | 📋 Requests | Paginated table of every simplification log (date, document, mode, level, grades, time) |
+  | 📝 Document Review | All documents across all users — click any row to open inline correction editor, save corrected simplified text |
+  | 📚 Glossary Management | Add / delete custom legal term definitions that merge into highlighting results |
+- ✅ All simplification requests are **automatically logged** to MongoDB
+- ✅ Admin access: **first registered user** automatically becomes admin
+- ✅ One-time setup endpoint `POST /api/setup-admin` for existing users
 
 ---
 
 ## 📁 Project Structure
+
 ```
 contract-language-simplifier/
-├── app.py                 # Main Flask application (Routes & Logic)
-├── models.py              # Database Models (User, Document)
-├── requirements.txt       # Dependencies
-├── .env                   # Configuration (Not in Repo)
+├── app.py                     # Main Flask app — all routes & logic
+├── models.py                  # MongoDB models:
+│                              #   User, Document, SimplificationLog, GlossaryTerm
+├── requirements.txt           # All Python dependencies
+├── .env                       # Environment config (not in repo)
+│
 ├── nlp/
-│   ├── preprocessing.py   # Text cleaning & tokenization
-│   ├── readability.py     # Score calculation & complexity analysis
-│   └── model.py           # FLAN-T5 integration for simplification & summarization
-├── static/
-│   ├── css/
-│   │   ├── style.css      # Dashboard Styling
-│   │   └── auth.css       # Login/Register Styling
-│   └── js/                # Frontend Logic
-└── templates/             # HTML Templates
-    ├── dashboard.html     # User Dashboard
-    ├── login.html         # Login Page
-    ├── register.html      # Registration Page
-    └── view_document.html # Document Viewer, Analysis & Slicer UI
-```
-├── static/
-│   ├── css/
-│   │   ├── style.css      # Dashboard Styling
-│   │   └── auth.css       # Login/Register Styling
-│   └── js/                # Frontend Logic
-└── templates/             # HTML Templates
+│   ├── model.py               # FLAN-T5 simplification & summarization
+│   ├── legal_terms.py         # 80+ term glossary, highlighting & tooltip HTML   ← NEW
+│   ├── readability.py         # Flesch-Kincaid & Gunning Fog scoring
+│   ├── preprocessing.py       # SpaCy/NLTK text cleaning pipeline
+│   └── chunking.py            # Large document chunking for FLAN-T5
+│
+├── templates/
+│   ├── view_document.html     # Document viewer — mode cards, highlighted text,
+│   │                          # glossary panel, metrics, bar chart             ← REDESIGNED
+│   ├── admin.html             # Admin dashboard with 4 tabs                    ← NEW
+│   ├── dashboard.html         # User dashboard
+│   ├── login.html             # Login page
+│   └── register.html          # Registration page
+│
+└── static/
+    ├── css/
+    │   ├── style.css          # Dashboard styles
+    │   └── auth.css           # Login/Register styles
+    └── js/                    # Frontend logic
 ```
 
 ---
@@ -94,7 +122,7 @@ contract-language-simplifier/
 
 ### Prerequisites
 - Python 3.8+
-- MongoDB installed and running
+- MongoDB installed and running locally (or MongoDB Atlas URI)
 
 ### Step 1: Clone Repository
 ```bash
@@ -104,11 +132,13 @@ cd contract-language-simplifier
 
 ### Step 2: Create Virtual Environment
 ```bash
-python -m venv .venv
+python -m venv venv
+
 # Windows
-.venv\Scripts\activate
+venv\Scripts\activate
+
 # Mac/Linux
-source .venv/bin/activate
+source venv/bin/activate
 ```
 
 ### Step 3: Install Dependencies
@@ -118,9 +148,9 @@ python -m spacy download en_core_web_sm
 ```
 
 ### Step 4: Configure Environment
-Create a `.env` file in the root directory:
-```
-SECRET_KEY=your_secret_key
+Create a `.env` file in the project root:
+```env
+SECRET_KEY=your_secret_key_here
 MONGODB_URI=mongodb://localhost:27017/contract_simplifier
 ```
 
@@ -128,16 +158,79 @@ MONGODB_URI=mongodb://localhost:27017/contract_simplifier
 ```bash
 python app.py
 ```
-Access the app at `http://localhost:8000`
+Open your browser at **http://localhost:8000**
 
 ---
 
 ## 📋 API Endpoints
 
-- `GET /document/<doc_id>`: View specific document and interface
-- `POST /api/analyze`: Analyze text for readability and complexity
-- `POST /api/register`: Register new user
-- `POST /api/login`: Authenticate user
-- `POST /api/upload`: Upload document
-- `POST /simplify/<doc_id>`: Generate AI simplified text (accepts `level` payload)
-- `POST /summarize/<doc_id>`: Generate hybrid AI summary
+### Auth
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/register` | Register new user |
+| `POST` | `/api/login` | Authenticate user |
+| `GET` | `/logout` | Clear session & logout |
+
+### Documents
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/upload` | Upload a document (text or `.txt` file) |
+| `GET` | `/document/<doc_id>` | View document with highlighting & tools |
+| `POST` | `/simplify/<doc_id>` | Simplify text — accepts `level` (1-100) & `simplification_mode` (basic/intermediate/advanced) |
+| `POST` | `/summarize/<doc_id>` | Generate hybrid AI summary |
+| `POST` | `/api/analyze` | Analyze text for readability scores |
+| `POST` | `/api/highlight_terms` | Detect & highlight legal terms in text |
+
+### Admin (🔐 Admin only)
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/admin` | Admin dashboard UI |
+| `GET` | `/api/admin/stats` | Aggregated usage statistics |
+| `GET` | `/api/admin/requests` | Paginated simplification request logs |
+| `GET` | `/api/admin/documents` | All documents (all users) |
+| `POST` | `/api/admin/document/<id>/correct` | Save admin-corrected simplified text |
+| `GET` | `/api/admin/glossary` | List custom glossary terms |
+| `POST` | `/api/admin/glossary` | Add custom legal term |
+| `DELETE` | `/api/admin/glossary/<id>` | Delete custom term |
+| `POST` | `/api/setup-admin` | One-time: grant admin to logged-in user |
+
+---
+
+## 🔐 Admin Access
+
+The **first user to register** is automatically granted admin privileges.
+
+**Already registered before admin was added?** Run this in the browser console while logged in:
+```javascript
+fetch('/api/setup-admin', {method:'POST'})
+  .then(r=>r.json())
+  .then(d=>{ alert(d.message); if(d.redirect) window.location=d.redirect; })
+```
+
+---
+
+## 📸 UI Overview
+
+| Screen | Description |
+|---|---|
+| **Document View** | Blue gradient header, User View / Admin Dashboard tabs, 3 simplification mode cards, side-by-side original & simplified text, legal term highlighting with tooltips, searchable glossary panel |
+| **Admin Dashboard** | Navy sidebar, 4-tab layout, stat cards, mode breakdown & activity charts, document correction editor, glossary CRUD |
+
+---
+
+## 📦 Dependencies
+
+```
+flask==3.0.0
+flask-cors==4.0.0
+flask-session==0.6.0
+pymongo==4.6.1
+python-dotenv==1.0.0
+bcrypt==4.1.2
+email-validator==2.1.0
+transformers
+torch
+spacy
+nltk
+textstat
+```

@@ -4,7 +4,7 @@ print("APP STARTED")
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from config.database import db_instance
-from models import User, Document  # Modified import
+from models import User, Document, SimplificationLog, GlossaryTerm  # Updated import
 import os
 import time 
 from dotenv import load_dotenv
@@ -42,7 +42,57 @@ db = db_instance.connect()
 # Initialize Models
 user_model = User(db) if db is not None else None
 document_model = Document(db) if db is not None else None
+log_model = SimplificationLog(db) if db is not None else None
+glossary_model = GlossaryTerm(db) if db is not None else None
 
+# ─────────────────────────────────────────────
+#  Helper
+# ─────────────────────────────────────────────
+def is_admin():
+    """Check if current user is admin — checks DB directly to handle
+    users registered before the is_admin field was added."""
+    if 'user_id' not in session:
+        return False
+    # Fast path: session already says admin
+    if session.get('is_admin'):
+        return True
+    # Slow path: check DB (handles migration case)
+    if user_model:
+        user = user_model.get_user_by_id(session['user_id'])
+        if user and user.get('is_admin'):
+            session['is_admin'] = True   # update session so fast path works next time
+            return True
+    return False
+
+
+@app.route('/api/setup-admin', methods=['POST'])
+def setup_admin():
+    """One-time setup: grant admin to the logged-in user if NO admin exists yet.
+    Also promotes the logged-in user if they are the only user in the system."""
+    if 'user_id' not in session:
+        return jsonify({"success": False, "message": "Must be logged in"}), 401
+    if not user_model:
+        return jsonify({"success": False, "message": "DB not connected"}), 500
+
+    # Allow if there is currently no admin in the DB
+    existing_admin = user_model.collection.find_one({"is_admin": True})
+    total_users = user_model.collection.count_documents({})
+
+    if existing_admin and total_users > 1:
+        return jsonify({"success": False, "message": "Admin already assigned"}), 403
+
+    # Promote current user
+    from bson.objectid import ObjectId
+    user_model.collection.update_one(
+        {"_id": ObjectId(session['user_id'])},
+        {"$set": {"is_admin": True}}
+    )
+    session['is_admin'] = True
+    return jsonify({"success": True, "message": "Admin access granted! Redirecting…", "redirect": "/admin"})
+
+# ─────────────────────────────────────────────
+#  Public routes
+# ─────────────────────────────────────────────
 @app.route('/')
 def index():
     """Render the registration page"""
@@ -67,12 +117,14 @@ def register():
         email = data.get('email', '').strip()
         phone = data.get('phone', '').strip()
         password = data.get('password', '')
+
+        # First registered user becomes admin
+        is_first_user = user_model.collection.count_documents({}) == 0
         
         # Create user
-        result = user_model.create_user(name, email, phone, password)
+        result = user_model.create_user(name, email, phone, password, is_admin=is_first_user)
         
         if result['success']:
-            # Redirect to login instead of auto-login
             return jsonify({
                 "success": True,
                 "message": "Registration successful! Please login."
@@ -134,11 +186,14 @@ def api_login():
         # Login successful
         session['user_id'] = str(user['_id'])
         session['name'] = user['name']
+        session['is_admin'] = user.get('is_admin', False)
         
+        redirect_url = "/admin" if session['is_admin'] else "/dashboard"
         return jsonify({
             "success": True,
             "message": "Login successful",
-            "redirect": "/dashboard"
+            "redirect": redirect_url,
+            "is_admin": session['is_admin']
         })
         
     except Exception as e:
@@ -236,7 +291,6 @@ def analyze_text():
         # Calculate readability
         readability = calculate_readability(text)
         
-        # Word complexity (imported dynamically to avoid circular issues if any, though likely fine)
         from nlp.readability import analyze_word_complexity
         complexity_map = analyze_word_complexity(text)
         
@@ -249,6 +303,34 @@ def analyze_text():
         
     except Exception as e:
         return jsonify({"success": False, "message": f"Analysis error: {str(e)}"}), 500
+
+
+@app.route('/api/highlight_terms', methods=['POST'])
+def highlight_terms():
+    """Find and return legal terms present in the given text"""
+    try:
+        data = request.get_json()
+        text = data.get('text', '')
+        if not text:
+            return jsonify({"success": False, "message": "No text provided"}), 400
+
+        from nlp.legal_terms import find_legal_terms, highlight_text_html
+        terms = find_legal_terms(text)
+        highlighted_html = highlight_text_html(text)
+
+        # Also merge in custom glossary terms from DB
+        custom_terms = []
+        if glossary_model:
+            custom_terms = glossary_model.get_all_terms()
+
+        return jsonify({
+            "success": True,
+            "terms": terms,
+            "highlighted_html": highlighted_html,
+            "custom_glossary": custom_terms
+        })
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Highlight error: {str(e)}"}), 500
 
 
 @app.route('/document/<doc_id>')
@@ -269,7 +351,7 @@ def view_document(doc_id):
     if str(doc['user_id']) != session['user_id']:
         return "Unauthorized", 403
         
-    return render_template('view_document.html', doc=doc)
+    return render_template('view_document.html', doc=doc, is_admin=session.get('is_admin', False))
 
 @app.route('/simplify/<doc_id>', methods=['POST'])
 def simplify_document(doc_id):
@@ -286,22 +368,20 @@ def simplify_document(doc_id):
     try:
         data = request.get_json(silent=True) or {}
         level = int(data.get('level', 70))
-        simplification_mode = data.get('simplification_mode', 'intermediate')  # NEW: Get mode
+        simplification_mode = data.get('simplification_mode', 'intermediate')
 
         # Validate simplification mode
         if simplification_mode not in ['basic', 'intermediate', 'advanced']:
-            simplification_mode = 'intermediate'  # Default to intermediate if invalid
+            simplification_mode = 'intermediate'
         
         content = doc.get("content", "")
         
-        # Task 6: Check document size
         if len(content) > MAX_DOCUMENT_LENGTH:
             return jsonify({
                 "success": False, 
                 "message": f"Document too large. Maximum {MAX_DOCUMENT_LENGTH} characters allowed."
             }), 400
         
-        # Task 6: Check if content is empty
         if not content.strip():
             return jsonify({
                 "success": False,
@@ -311,9 +391,8 @@ def simplify_document(doc_id):
         # Track processing time
         start_time = time.time()
         
-        # Task 6: Simplify with chunking support for large docs
         try:
-            simplified = simplify_text(content, level,simplification_mode)
+            simplified = simplify_text(content, level, simplification_mode)
         except Exception as e:
             print(f"Error during simplification: {e}")
             return jsonify({
@@ -329,7 +408,6 @@ def simplify_document(doc_id):
             simplified_readability = calculate_readability(simplified)
         except Exception as e:
             print(f"Error calculating readability: {e}")
-            # Use default values if readability calculation fails
             original_readability = {'flesch_kincaid_grade': 0}
             simplified_readability = {'flesch_kincaid_grade': 0}
         
@@ -343,12 +421,30 @@ def simplify_document(doc_id):
         
         # Save to DB
         document_model.update_document_simplified(doc_id, simplified)
+
+        # Log simplification request for admin monitoring
+        if log_model:
+            try:
+                log_model.create_log(
+                    user_id=session['user_id'],
+                    doc_id=doc_id,
+                    doc_title=doc.get('title', 'Untitled'),
+                    mode=simplification_mode,
+                    level=level,
+                    processing_time=processing_time,
+                    original_grade=original_grade,
+                    simplified_grade=simplified_grade,
+                    original_words=original_words,
+                    simplified_words=simplified_words
+                )
+            except Exception as log_err:
+                print(f"Warning: Could not log simplification: {log_err}")
         
         # Return with metrics
         return jsonify({
             "success": True, 
             "simplified_content": simplified,
-            "simplification_mode": simplification_mode,  # NEW: Return the mode used
+            "simplification_mode": simplification_mode,
             "metrics": {
                 "processing_time": processing_time,
                 "original_grade": original_grade,
@@ -392,6 +488,157 @@ def logout():
     """Handle user logout"""
     session.clear()
     return redirect(url_for('login'))
+
+# ─────────────────────────────────────────────
+#  Admin routes
+# ─────────────────────────────────────────────
+
+@app.route('/admin')
+def admin_dashboard():
+    """Render the admin dashboard"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if not is_admin():
+        return redirect(url_for('dashboard'))
+    return render_template('admin.html', name=session.get('name'))
+
+
+@app.route('/api/admin/stats', methods=['GET'])
+def admin_stats():
+    """Return aggregated stats for the admin dashboard"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        stats = {}
+        if log_model:
+            stats = log_model.get_stats()
+        if document_model:
+            stats['total_documents'] = document_model.collection.count_documents({})
+        if user_model:
+            stats['total_users'] = user_model.collection.count_documents({})
+        return jsonify({"success": True, "stats": stats})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/requests', methods=['GET'])
+def admin_requests():
+    """Return recent simplification requests"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        logs = log_model.get_recent_logs(page=page, per_page=per_page) if log_model else []
+        return jsonify({"success": True, "logs": logs})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/documents', methods=['GET'])
+def admin_documents():
+    """Return all documents for review"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        docs = document_model.get_all_documents(page=page, per_page=per_page) if document_model else []
+        return jsonify({"success": True, "documents": docs})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/document/<doc_id>/correct', methods=['POST'])
+def admin_correct_document(doc_id):
+    """Allow admin to save a corrected simplified text"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        data = request.get_json()
+        corrected_text = data.get('corrected_text', '').strip()
+        if not corrected_text:
+            return jsonify({"success": False, "message": "Corrected text cannot be empty"}), 400
+
+        if document_model:
+            document_model.update_document_simplified(doc_id, corrected_text)
+            # Mark as admin-corrected
+            document_model.collection.update_one(
+                {"_id": __import__('bson').ObjectId(doc_id)},
+                {"$set": {"admin_corrected": True, "admin_corrected_by": session['user_id']}}
+            )
+        return jsonify({"success": True, "message": "Correction saved successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/glossary', methods=['GET'])
+def admin_get_glossary():
+    """Get all custom glossary terms"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        terms = glossary_model.get_all_terms() if glossary_model else []
+        return jsonify({"success": True, "terms": terms})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/glossary', methods=['POST'])
+def admin_add_glossary():
+    """Add a custom glossary term"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        data = request.get_json()
+        term = data.get('term', '').strip().lower()
+        definition = data.get('definition', '').strip()
+        if not term or not definition:
+            return jsonify({"success": False, "message": "Term and definition are required"}), 400
+
+        result = glossary_model.add_term(term, definition, session['user_id']) if glossary_model else {"success": False}
+        return jsonify(result), 201 if result.get('success') else 400
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/glossary/<term_id>', methods=['DELETE'])
+def admin_delete_glossary(term_id):
+    """Delete a custom glossary term"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        result = glossary_model.delete_term(term_id) if glossary_model else {"success": False}
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@app.route('/api/admin/glossary/<term_id>', methods=['PUT'])
+def admin_update_glossary(term_id):
+    """Update a custom glossary term"""
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+        data = request.get_json()
+        term = data.get('term', '').strip().lower()
+        definition = data.get('definition', '').strip()
+        if not term or not definition:
+            return jsonify({"success": False, "message": "Term and definition required"}), 400
+
+        result = glossary_model.update_term(term_id, term, definition) if glossary_model else {"success": False}
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
