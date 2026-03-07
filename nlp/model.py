@@ -14,11 +14,20 @@ except Exception as e:
     tokenizer = None
     model = None
 
-def simplify_text(text: str, level: int = 70) -> str:
+def simplify_text(text: str, level: int = 70, simplification_mode: str = "intermediate") -> str:
     """Simplifies the given text using FLAN-T5 with chunking for large documents.
-    Level (1-100) controls how brief the output is.
-    Higher level = Simpler/Shorter length. Lower level = Closer to original length.
-    """
+    
+Args:
+    text (str): Input text to simplify
+    level (int): Simplification intensity (1-100)
+    simplification_mode (str): Simplification level - 'basic', 'intermediate', or 'advanced'
+        - basic: Minimal changes, preserve legal terminology
+        - intermediate: Balanced simplification (default)
+        - advanced: Maximum simplification, very simple language
+    
+Returns:
+    str: Simplified text
+"""
     if not model or not tokenizer:
         return "Model not loaded properly."
     if not text.strip():
@@ -33,31 +42,54 @@ def simplify_text(text: str, level: int = 70) -> str:
         
         # Process large document in chunks
         def simplify_chunk(chunk):
-            return _simplify_single_chunk(chunk, level)
+             return _simplify_single_chunk(chunk, level, simplification_mode)
         
         # Use chunking with max 400 tokens per chunk
         simplified = process_large_document(text, simplify_chunk, max_tokens=400)
         return simplified
     else:
         # Process normally for small documents
-        return _simplify_single_chunk(text, level)
+        return _simplify_single_chunk(text, level, simplification_mode)
 
-def _simplify_single_chunk(text: str, level: int = 70) -> str:
-    """Internal function to simplify a single chunk of text."""
+def _simplify_single_chunk(text: str, level: int = 70, simplification_mode: str = "intermediate") -> str:
     # Scale between 40 (shortest) and 350 (longest limit)
     mapped_max_tokens = int(max(40, 350 - (level * 2)))
 
-    if level > 80:
-        prompt = f"Rewrite this text using extremely simple words so a child can understand: {text}"
-    elif level > 40:
-        prompt = f"Simplify the following text so it is easy to read for the general public: {text}"
-    else:
-        prompt = f"Slightly rephrase the following text to improve clarity, keeping all details: {text}"
+    # Multi-level simplification prompts
+    if simplification_mode == "basic":
+        # Basic: Minimal changes, preserve most original wording
+        if level > 80:
+            prompt = f"Slightly rephrase this text for easier reading, keeping most original words: {text}"
+        elif level > 40:
+            prompt = f"Make this text a bit clearer while keeping the legal language mostly intact: {text}"
+        else:
+            prompt = f"Improve clarity of this text with minimal changes: {text}"
+        max_tokens_override = int(mapped_max_tokens * 1.2)  # Allow longer output for basic
+        
+    elif simplification_mode == "advanced":
+        # Advanced: Maximum simplification, very simple language
+        if level > 80:
+            prompt = f"Rewrite this in the simplest possible words, as if explaining to a 10-year-old child: {text}"
+        elif level > 40:
+            prompt = f"Translate this legal text into extremely simple everyday language that anyone can understand: {text}"
+        else:
+            prompt = f"Simplify this text dramatically using only common, everyday words: {text}"
+        max_tokens_override = int(mapped_max_tokens * 0.8)  # Shorter output for advanced
+        
+    else:  # intermediate (default)
+        # Intermediate: Balanced simplification
+        if level > 80:
+            prompt = f"Rewrite this text using simple words so a general audience can understand: {text}"
+        elif level > 40:
+            prompt = f"Simplify the following text so it is easy to read for the general public: {text}"
+        else:
+            prompt = f"Rephrase the following text to improve clarity while keeping important details: {text}"
+        max_tokens_override = mapped_max_tokens
 
     inputs = tokenizer(prompt, return_tensors="pt", max_length=1024, truncation=True)
     outputs = model.generate(
         **inputs, 
-        max_new_tokens=mapped_max_tokens, 
+        max_new_tokens=max_tokens_override, 
         do_sample=True,
         temperature=0.7,
         top_p=0.9

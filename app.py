@@ -286,6 +286,11 @@ def simplify_document(doc_id):
     try:
         data = request.get_json(silent=True) or {}
         level = int(data.get('level', 70))
+        simplification_mode = data.get('simplification_mode', 'intermediate')  # NEW: Get mode
+
+        # Validate simplification mode
+        if simplification_mode not in ['basic', 'intermediate', 'advanced']:
+            simplification_mode = 'intermediate'  # Default to intermediate if invalid
         
         content = doc.get("content", "")
         
@@ -308,7 +313,7 @@ def simplify_document(doc_id):
         
         # Task 6: Simplify with chunking support for large docs
         try:
-            simplified = simplify_text(content, level)
+            simplified = simplify_text(content, level,simplification_mode)
         except Exception as e:
             print(f"Error during simplification: {e}")
             return jsonify({
@@ -343,6 +348,7 @@ def simplify_document(doc_id):
         return jsonify({
             "success": True, 
             "simplified_content": simplified,
+            "simplification_mode": simplification_mode,  # NEW: Return the mode used
             "metrics": {
                 "processing_time": processing_time,
                 "original_grade": original_grade,
