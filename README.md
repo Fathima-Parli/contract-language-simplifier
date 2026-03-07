@@ -1,8 +1,18 @@
+
+---
+title: Contract Language Simplifier
+emoji: 📄
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+license: mit
+short_description: AI tool that simplifies complex legal contract language using NLP
+---
+
 # Contract Language Simplifier
 
 > **AI-powered tool that transforms complex legal documents into plain, easy-to-understand English.**
-
----
 
 ## 🚀 Milestone 4 Completed — Multi-level Simplification, Key Term Highlighting & Admin Dashboard
 
@@ -234,3 +244,17 @@ spacy
 nltk
 textstat
 ```
+=======
+---
+title: Contract Simplifier
+emoji: 🌍
+colorFrom: red
+colorTo: gray
+sdk: docker
+pinned: false
+license: mit
+short_description: AI tool  simplify complex legal contract language using NLP
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+
