@@ -15,7 +15,7 @@ class Database:
     def connect(self):
         """Establish connection to MongoDB"""
         try:
-            self.client = MongoClient(self.mongodb_uri)
+            self.client = MongoClient(self.mongodb_uri, serverSelectionTimeoutMS=5000)
             self.db = self.client[self.db_name]
             # Test the connection
             self.client.server_info()
