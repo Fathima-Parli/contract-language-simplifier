@@ -1,22 +1,5 @@
 import spacy
 import re
-import nltk
-from nltk.tokenize import word_tokenize
-
-# Ensure required NLTK data is available (do not download during runtime)
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    raise LookupError(
-        "NLTK resource 'punkt' not found. Please install it during build with: nltk.download('punkt')"
-    )
-
-try:
-    nltk.data.find('corpora/stopwords')
-except LookupError:
-    raise LookupError(
-        "NLTK resource 'stopwords' not found. Please install it during build with: nltk.download('stopwords')"
-    )
 
 # Load SpaCy model (must be installed in requirements.txt)
 try:
@@ -52,12 +35,13 @@ def segment_sentences(text):
 
 def tokenize_text(text):
     """
-    Tokenize text using NLTK.
+    Tokenize text using SpaCy.
     """
     if not text:
         return []
 
-    return word_tokenize(text)
+    doc = nlp(text)
+    return [token.text for token in doc]
 
 
 def preprocess_pipeline(text):
