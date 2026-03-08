@@ -640,5 +640,5 @@ def admin_update_glossary(term_id):
         return jsonify({"success": False, "message": str(e)}), 500
 
 
-if __name__ == '__main__':
-    app.run(debug=True, port=7860)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=7860, debug=False)
