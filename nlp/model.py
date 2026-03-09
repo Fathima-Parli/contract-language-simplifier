@@ -1,8 +1,13 @@
 import logging
 import os
+import re
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-import nltk
-from nltk.tokenize import sent_tokenize
+
+# -------------------------------
+# Hugging Face environment setup
+# -------------------------------
+os.environ["HF_HOME"] = "/data"
+os.environ["HF_HUB_DISABLE_TELEMETRY"] = "1"
 
 # -------------------------------
 # Logging setup
@@ -10,17 +15,36 @@ from nltk.tokenize import sent_tokenize
 logging.basicConfig(level=logging.DEBUG)
 
 # -------------------------------
+# Simple sentence tokenizer
+# -------------------------------
+def sent_tokenize(text):
+    return re.split(r'(?<=[.!?]) +', text)
+
+# -------------------------------
 # Model setup
 # -------------------------------
-_MODEL_DIR = "./models/flan-t5-small"  # small version for Spaces
+_MODEL_DIR = "google/flan-t5-small"
 
-logging.info(f"Loading FLAN-T5 model from local folder ({_MODEL_DIR})...")
+logging.info(f"Loading FLAN-T5 model from Hugging Face hub ({_MODEL_DIR})...")
 
 try:
-    tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR, local_files_only=True)
-    model = AutoModelForSeq2SeqLM.from_pretrained(_MODEL_DIR, local_files_only=True)
-    model.to("cpu")  # force CPU to avoid GPU memory issues
+    print("Downloading and loading FLAN-T5 model...")
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        _MODEL_DIR,
+        local_files_only=False
+    )
+
+    model = AutoModelForSeq2SeqLM.from_pretrained(
+        _MODEL_DIR,
+        local_files_only=False
+    )
+
+    model.to("cpu")
+
+    print("Model loaded successfully.")
     logging.info("Model loaded successfully.")
+
 except Exception as e:
     logging.exception("Error loading model")
     tokenizer = None
@@ -49,6 +73,7 @@ def simplify_text(text: str, level: int = 70, simplification_mode: str = "interm
     else:
         return _simplify_single_chunk(text, level, simplification_mode)
 
+
 def _simplify_single_chunk(text: str, level: int = 70, simplification_mode: str = "intermediate") -> str:
     mapped_max_tokens = int(max(40, 350 - (level * 2)))
 
@@ -64,6 +89,7 @@ def _simplify_single_chunk(text: str, level: int = 70, simplification_mode: str 
 
     try:
         inputs = tokenizer(prompt, return_tensors="pt", max_length=1024, truncation=True)
+
         outputs = model.generate(
             **inputs,
             max_new_tokens=max_tokens_override,
@@ -71,24 +97,32 @@ def _simplify_single_chunk(text: str, level: int = 70, simplification_mode: str 
             temperature=0.7,
             top_p=0.9
         )
+
         return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
     except Exception as e:
         logging.exception("Error during simplification generation")
         return text
+
 
 # -------------------------------
 # Summarization functions
 # -------------------------------
 def _extractive_summary(text: str, num_sentences: int = 3) -> str:
     sentences = sent_tokenize(text)
+
     if len(sentences) <= num_sentences:
         return text
+
     idx = [0, len(sentences)//2, len(sentences)-1]
+
     return " ".join([sentences[i] for i in sorted(list(set(idx)))])
+
 
 def summarize_text(text: str) -> str:
     if not text.strip():
         return ""
+
     if not model or not tokenizer:
         return _extractive_summary(text)
 
@@ -99,23 +133,33 @@ def summarize_text(text: str) -> str:
         return _extractive_summary(text)
 
     if is_large_document(text, threshold_tokens=600):
+
         chunks = chunk_text(text, max_tokens=500)
         chunk_summaries = []
+
         for chunk in chunks:
             summary = _summarize_single_chunk(chunk)
+
             if summary:
                 chunk_summaries.append(summary)
+
         combined = ' '.join(chunk_summaries)
+
         if len(combined.split()) > 200:
             return _summarize_single_chunk(combined)
+
         return combined
+
     else:
         return _summarize_single_chunk(text)
 
+
 def _summarize_single_chunk(text: str) -> str:
     prompt = f"Write a detailed summary of the following text: {text}"
+
     try:
         inputs = tokenizer(prompt, return_tensors="pt", max_length=1024, truncation=True)
+
         outputs = model.generate(
             **inputs,
             max_new_tokens=400,
@@ -124,10 +168,14 @@ def _summarize_single_chunk(text: str) -> str:
             num_beams=4,
             do_sample=False
         )
+
         summary = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
         if len(summary.split()) < 10 and len(text.split()) > 30:
             return _extractive_summary(text)
+
         return summary
+
     except Exception as e:
         logging.exception("Error during summarization generation")
         return _extractive_summary(text)
