@@ -8,5 +8,6 @@ email-validator==2.1.0
 transformers==4.40.0
 torch
 spacy==3.7.2
+nltk
 textstat==0.7.3
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl

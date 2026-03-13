@@ -40,7 +40,7 @@ try:
         local_files_only=False
     )
 
-    model.to("cpu")
+    model.to("cpu")  # force CPU to avoid GPU memory issues
 
     print("Model loaded successfully.")
     logging.info("Model loaded successfully.")
@@ -49,6 +49,7 @@ except Exception as e:
     logging.exception("Error loading model")
     tokenizer = None
     model = None
+
 
 # -------------------------------
 # Simplification functions

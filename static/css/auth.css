@@ -33,8 +33,8 @@ body.auth-page {
 .auth-header h1 {
     font-size: 24px;
     font-weight: 700;
-    color: #0d6efd;
-    /* Official Blue from dashboard */
+    color: #4f46e5;
+    /* Main Indigo from dashboard */
     margin-bottom: 10px;
     letter-spacing: -0.5px;
 }
@@ -68,15 +68,15 @@ body.auth-page {
 }
 
 .auth-form input:focus {
-    border-color: #8bb9fe;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+    border-color: #c7d2fe;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
 .auth-submit-btn {
     width: 100%;
     padding: 12px;
-    background-color: #0d6efd;
-    /* Dashboard Blue */
+    background-color: #4f46e5;
+    /* Dashboard Indigo */
     color: white;
     border: none;
     border-radius: 8px;
@@ -88,7 +88,7 @@ body.auth-page {
 }
 
 .auth-submit-btn:hover {
-    background-color: #0b5ed7;
+    background-color: #4338ca;
     transform: none;
 }
 
@@ -100,14 +100,14 @@ body.auth-page {
 }
 
 .auth-footer a {
-    color: #0d6efd;
+    color: #4f46e5;
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s;
 }
 
 .auth-footer a:hover {
-    color: #0a58ca;
+    color: #4338ca;
     text-decoration: underline;
 }
 
