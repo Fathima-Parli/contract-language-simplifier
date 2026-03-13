@@ -54,12 +54,12 @@ def is_admin():
     if 'user_id' not in session:
         return False
     # Fast path: session already says admin
-    if session.get('is_admin'):
+    if str(session.get('is_admin')).lower() == 'true':
         return True
     # Slow path: check DB (handles migration case)
     if user_model:
         user = user_model.get_user_by_id(session['user_id'])
-        if user and user.get('is_admin'):
+        if user and str(user.get('is_admin')).lower() == 'true':
             session['is_admin'] = True   # update session so fast path works next time
             return True
     return False
@@ -186,7 +186,7 @@ def api_login():
         # Login successful
         session['user_id'] = str(user['_id'])
         session['name'] = user['name']
-        session['is_admin'] = user.get('is_admin', False)
+        session['is_admin'] = str(user.get('is_admin', False)).lower() == 'true'
         
         redirect_url = "/admin" if session['is_admin'] else "/dashboard"
         return jsonify({
@@ -213,7 +213,7 @@ def dashboard():
     if document_model:
         documents = document_model.get_user_documents(session['user_id'])
 
-    return render_template('dashboard.html', name=session.get('name'), documents=documents)
+    return render_template('dashboard.html', name=session.get('name'), documents=documents, is_admin=session.get('is_admin', False))
 
 @app.route('/api/upload', methods=['POST'])
 def upload_document():

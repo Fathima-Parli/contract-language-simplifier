@@ -12,13 +12,13 @@ logging.basicConfig(level=logging.DEBUG)
 # -------------------------------
 # Model setup
 # -------------------------------
-_MODEL_DIR = "./models/flan-t5-small"  # small version for Spaces
+_MODEL_DIR = "google/flan-t5-small"
 
-logging.info(f"Loading FLAN-T5 model from local folder ({_MODEL_DIR})...")
+logging.info(f"Loading FLAN-T5 model ({_MODEL_DIR})...")
 
 try:
-    tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR, local_files_only=True)
-    model = AutoModelForSeq2SeqLM.from_pretrained(_MODEL_DIR, local_files_only=True)
+    tokenizer = AutoTokenizer.from_pretrained(_MODEL_DIR)
+    model = AutoModelForSeq2SeqLM.from_pretrained(_MODEL_DIR)
     model.to("cpu")  # force CPU to avoid GPU memory issues
     logging.info("Model loaded successfully.")
 except Exception as e:
