@@ -534,6 +534,9 @@
             <div class="nav-item" onclick="switchTab('glossary')" id="nav-glossary">
                 <span>📚</span> Glossary Management
             </div>
+            <div class="nav-item" onclick="switchTab('users')" id="nav-users">
+                 <span>👥</span> User Management
+            </div>
         </nav>
         <div class="sidebar-footer">
             👤 Logged in as <strong>{{ name }}</strong><br>
@@ -722,8 +725,96 @@
                     </div>
                 </div>
             </div>
+<!-- ── User Management Tab ── -->
+<div class="tab-pane" id="tab-users">
 
+    <div class="card">
+        <div class="card-title">👥 User Management</div>
+
+        <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Joined</th>
+                        <th>Requests</th>
+                        <th>Documents</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody id="users-tbody">
+                    <tr>
+                        <td colspan="6" class="loading-info">Loading users...</td>
+                    </tr>
+                </tbody>
+
+            </table>
+        </div>
+
+    </div>
+
+</div>
         </div><!-- /content-area -->
+        <!-- User Activity Modal -->
+<div id="userActivityModal" style="display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+justify-content:center;
+align-items:center;
+z-index:999;">
+
+<div style="background:white;
+width:80%;
+max-height:80%;
+overflow:auto;
+padding:20px;
+border-radius:10px;">
+
+<h2 id="activity-user-title">User Activity</h2>
+
+<h3>Documents Uploaded</h3>
+
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Type</th>
+<th>Date</th>
+</tr>
+</thead>
+<tbody id="activity-docs"></tbody>
+</table>
+
+<br>
+
+<h3>Simplification Requests</h3>
+
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Mode</th>
+<th>Level</th>
+<th>Original Grade</th>
+<th>Simplified Grade</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody id="activity-requests"></tbody>
+</table>
+
+<br>
+
+<button class="btn btn-secondary" onclick="closeActivity()">Close</button>
+
+</div>
+</div>
     </main>
 
     <script>
@@ -732,12 +823,13 @@
         let reqPage = 1, docsPage = 1;
 
         // ── Tab Switching ──
-        const tabTitles = {
-            overview: '📊 Overview',
-            requests: '📋 Simplification Requests',
-            review: '📝 Document Review',
-            glossary: '📚 Glossary Management'
-        };
+const tabTitles = {
+    overview: '📊 Overview',
+    requests: '📋 Simplification Requests',
+    review: '📝 Document Review',
+    glossary: '📚 Glossary Management',
+    users: '👥 User Management'
+};
 
         function switchTab(tab) {
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
@@ -750,6 +842,7 @@
             if (tab === 'requests') loadRequests();
             if (tab === 'review') loadDocs();
             if (tab === 'glossary') loadGlossary();
+            if (tab === 'users') loadUsers();
         }
 
         // ── Overview ──
@@ -964,7 +1057,140 @@
                 else alert('Error: ' + data.message);
             } catch (e) { alert('Network error'); }
         }
+        // ── Users ──
+async function loadUsers() {
 
+    try {
+
+        const res = await fetch('/api/admin/users');
+        const data = await res.json();
+
+        const tbody = document.getElementById('users-tbody');
+
+        if (!data.success || !data.users.length) {
+
+            tbody.innerHTML =
+                '<tr><td colspan="6" class="loading-info">No users found.</td></tr>';
+
+            return;
+        }
+
+        tbody.innerHTML = data.users.map(u => `
+        <tr>
+            <td>${escHtml(u.name)}</td>
+            <td>${escHtml(u.email)}</td>
+            <td>${u.created_at || '-'}</td>
+            <td>${u.requests || 0}</td>
+            <td>${u.documents || 0}</td>
+<td>
+
+<button class="btn btn-secondary"
+onclick="viewUserActivity('${u._id}','${u.name}')">
+👁 View
+</button>
+
+<button class="btn btn-danger"
+onclick="deleteUser('${u._id}')">
+🗑 Delete
+</button>
+
+</td>
+        </tr>
+        `).join('');
+
+    } catch (err) {
+
+        console.error("Users load error", err);
+
+    }
+
+}
+async function deleteUser(userId) {
+
+    if (!confirm("Delete this user and all their activity?"))
+        return;
+
+    try {
+
+        const res = await fetch(`/api/admin/users/${userId}`, {
+            method: "DELETE"
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+
+            alert("User deleted successfully");
+
+            loadUsers();
+
+        } else {
+
+            alert("Error deleting user");
+
+        }
+
+    } catch (err) {
+
+        alert("Network error");
+
+    }
+
+}
+async function viewUserActivity(userId, name){
+
+document.getElementById("activity-user-title").innerText =
+"User Activity - " + name;
+
+const res = await fetch(`/api/admin/users/${userId}/activity`);
+const data = await res.json();
+
+const docsBody = document.getElementById("activity-docs");
+const reqBody = document.getElementById("activity-requests");
+
+docsBody.innerHTML="";
+reqBody.innerHTML="";
+
+if(data.documents){
+
+data.documents.forEach(d=>{
+docsBody.innerHTML+=`
+<tr>
+<td>${escHtml(d.title)}</td>
+<td>${d.type}</td>
+<td>${d.date}</td>
+</tr>
+`;
+});
+
+}
+
+if(data.requests){
+
+data.requests.forEach(r=>{
+reqBody.innerHTML+=`
+<tr>
+<td>${escHtml(r.document)}</td>
+<td>${r.mode}</td>
+<td>${r.level}</td>
+<td>${r.orig_grade}</td>
+<td>${r.simp_grade}</td>
+<td>${r.time}</td>
+</tr>
+`;
+});
+
+}
+
+document.getElementById("userActivityModal").style.display="flex";
+
+}
+
+function closeActivity(){
+
+document.getElementById("userActivityModal").style.display="none";
+
+}
         // ── Pagination helper ──
         function renderPagination(containerId, total, perPage, currentPage, callback) {
             const totalPages = Math.ceil(total / perPage);

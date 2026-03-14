@@ -12,7 +12,8 @@ from werkzeug.utils import secure_filename
 from nlp.preprocessing import preprocess_pipeline
 from nlp.readability import calculate_readability
 from nlp.model import simplify_text, summarize_text
-
+from flask import jsonify
+from bson.objectid import ObjectId
 # Load environment variables
 load_dotenv()
 
@@ -643,7 +644,127 @@ def admin_update_glossary(term_id):
         return jsonify(result)
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
+from bson.objectid import ObjectId
+
+@app.route("/api/admin/users")
+def get_all_users():
+
+    users = list(db_instance.db.users.find())
+
+    user_list = []
+
+    for user in users:
+
+        user_id = str(user["_id"])
+
+        # Count requests
+        req_count = db_instance.db.simplification_logs.count_documents({
+            "user_id": user_id
+        })
+
+        # Count documents (FIX)
+        doc_count = db_instance.db.documents.count_documents({
+            "user_id": ObjectId(user_id)
+        })
+
+        user_list.append({
+            "_id": user_id,
+            "name": user.get("name", ""),
+            "email": user.get("email", ""),
+            "created_at": user.get("created_at", ""),
+            "requests": req_count,
+            "documents": doc_count
+        })
+
+    return jsonify({
+        "success": True,
+        "users": user_list
+    })
+@app.route("/api/admin/users/<user_id>", methods=["DELETE"])
+def delete_user(user_id):
+
+    try:
+
+        # Delete user
+        db_instance.db.users.delete_one({
+            "_id": ObjectId(user_id)
+        })
+
+        # Delete user's documents
+        db_instance.db.documents.delete_many({
+            "user_id": user_id
+        })
+
+        # Delete user's simplification logs
+        db_instance.db.simplification_logs.delete_many({
+            "user_id": user_id
+        })
+
+        return jsonify({
+            "success": True,
+            "message": "User deleted successfully"
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        })
+from bson.objectid import ObjectId
+
+@app.route("/api/admin/users/<user_id>/activity")
+def get_user_activity(user_id):
+
+    if 'user_id' not in session or not is_admin():
+        return jsonify({"success": False, "message": "Unauthorized"}), 403
+
+    try:
+
+        documents = list(db_instance.db.documents.find({
+            "user_id": ObjectId(user_id)
+        }))
+
+        document_list = []
+
+        for d in documents:
+            document_list.append({
+                "title": d.get("title", ""),
+                "type": d.get("type", ""),
+                "date": str(d.get("created_at", ""))
+            })
 
 
+        # Get simplification requests by the user
+        logs = list(db_instance.db.simplification_logs.find({
+            "user_id": user_id
+        }))
+
+        request_list = []
+
+        for r in logs:
+            request_list.append({
+                "document": r.get("document_name", ""),
+                "mode": r.get("mode", ""),
+                "level": r.get("level", ""),
+                "original_grade": r.get("original_grade", ""),
+                "simplified_grade": r.get("simplified_grade", ""),
+                "time": r.get("processing_time", "")
+            })
+
+
+        return jsonify({
+            "success": True,
+            "documents": document_list,
+            "requests": request_list
+        })
+
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=7860, debug=False)
