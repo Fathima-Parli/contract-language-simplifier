@@ -1,14 +1,5 @@
 
----
-title: Contract Language Simplifier
-emoji: 📄
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
-license: mit
-short_description: AI tool that simplifies legal contract language
----
+
 
 # Contract Language Simplifier
 
